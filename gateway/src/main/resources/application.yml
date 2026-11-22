@@ -1,0 +1,49 @@
+# ---------- Settings for every profile ----------
+spring:
+  application:
+    name: gateway
+  profiles:
+    # If you start the app without choosing a profile, "local" is used.
+    default: local
+  threads:
+    virtual:
+      enabled: true   # each request runs on a cheap virtual thread (Java 21+)
+  datasource:
+    # Outside "local", these MUST come from environment variables (no secrets in the repo).
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate   # Flyway owns the schema; Hibernate only checks it
+  flyway:
+    locations: classpath:db/migration
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true   # adds /actuator/health/liveness and /readiness
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+---
+# ---------- "local" profile: safe defaults that match docker-compose.yml ----------
+spring:
+  config:
+    activate:
+      on-profile: local
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/agentgate}
+    username: ${DB_USERNAME:agentgate}
+    password: ${DB_PASSWORD:agentgate}

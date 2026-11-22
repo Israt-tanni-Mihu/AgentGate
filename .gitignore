@@ -1,0 +1,33 @@
+# Maven build output
+target/
+!.mvn/wrapper/maven-wrapper.jar
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+# VS Code / Eclipse
+.vscode/
+.classpath
+.project
+.settings/
+bin/
+
+# Java / logs
+*.class
+*.log
+hs_err_pid*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Local secrets (never commit)
+.env
+*.env.local
+
+# Claude Code personal settings
+.claude/settings.local.json
