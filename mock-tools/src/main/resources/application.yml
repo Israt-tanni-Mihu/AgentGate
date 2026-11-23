@@ -13,3 +13,8 @@ management:
     web:
       exposure:
         include: health,info
+
+springdoc:
+  # Only the ShopBD tool endpoints go into /v3/api-docs. The /admin/chaos endpoint is a test helper,
+  # so it must NOT appear in the spec, otherwise FR1's OpenAPI import would turn it into a "tool".
+  paths-to-match: /api/**
