@@ -48,6 +48,13 @@ agentgate:
       username: ${ADMIN_USERNAME:}
       password: ${ADMIN_PASSWORD:}
     access-token-ttl: 5m   # agents get a new token every 5 minutes
+  guards:
+    # FR5 redaction: data types each clearance must NOT see. HIGH agents still see emails and phones.
+    redaction-by-clearance:
+      LOW: [EMAIL, PHONE, NATIONAL_ID]
+      HIGH: [NATIONAL_ID]
+    truncation:
+      max-bytes: 8192   # results bigger than 8 KB (as JSON) are cut and the agent gets a notice
 
 ---
 # ---------- "local" profile: safe defaults that match docker-compose.yml ----------

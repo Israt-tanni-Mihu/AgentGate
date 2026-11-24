@@ -68,9 +68,12 @@ e.g. `X-On-Behalf-Of: 1` = customer 1 (Rahim Uddin).
 | `analytics-read-only` | ALLOW | analytics-bot | getOrder, getCustomer | – |
 | *(none)* | – | – | sendSms | falls to **default-deny** |
 
-**Known limitation:** "support-bot may read only its customer's **own** orders" cannot be decided from the arguments:
-`getOrder` takes only an order id, and which customer owns the order is only known from the **result**.
-This needs a result check, which comes with the guards (FR5). Until then `support-read-orders` allows any order id.
+**Own orders only:** "support-bot may read only its customer's **own** orders" cannot be decided from the arguments,
+because `getOrder` takes only an order id. The **ownership check** (FR5, `guard.OwnershipCheckStep`) checks the **result**:
+when a call has an end user (`X-On-Behalf-Of`) and the order's `customerId` is not that end user, the result is
+replaced by a `403` (`rule: ownership-check`, "cross-customer read blocked"), so the data never reaches the agent.
+The policy rule `support-read-orders` still allows any order id; the ownership check runs after the tool answered.
+The downstream tool was already called, so the audit trail (FR7) will record that attempt.
 
 ## Policy playground (FR9)
 

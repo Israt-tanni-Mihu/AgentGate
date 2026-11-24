@@ -79,9 +79,12 @@ class PolicyPlaygroundIntegrationTest {
     void registerShopTools() {
         requestsToShop.set(0);
         toolRepository.deleteAll();
-        toolRepository.save(tool("getCustomer", "GET", "/api/customers/{id}", RiskLevel.LOW));
-        toolRepository.save(tool("issueRefund", "POST", "/api/refunds", RiskLevel.HIGH));
-        toolRepository.save(tool("sendSms", "POST", "/api/sms", RiskLevel.MEDIUM));
+        toolRepository.save(tool("getCustomer", "GET", "/api/customers/{id}", RiskLevel.LOW, """
+                {"type":"object","properties":{"id":{"type":"integer"}},"required":["id"],"additionalProperties":false}"""));
+        toolRepository.save(tool("issueRefund", "POST", "/api/refunds", RiskLevel.HIGH, """
+                {"type":"object","properties":{"orderId":{"type":"integer"},"amount":{"type":"number"},"reason":{"type":"string"}},"required":["orderId","amount","reason"],"additionalProperties":false}"""));
+        toolRepository.save(tool("sendSms", "POST", "/api/sms", RiskLevel.MEDIUM, """
+                {"type":"object","properties":{"customerId":{"type":"integer"},"message":{"type":"string"}},"required":["customerId","message"],"additionalProperties":false}"""));
     }
 
     @AfterEach
@@ -273,11 +276,11 @@ class PolicyPlaygroundIntegrationTest {
         }
     }
 
-    private Tool tool(String name, String method, String path, RiskLevel risk) {
+    private Tool tool(String name, String method, String path, RiskLevel risk, String inputSchema) {
         Tool tool = new Tool();
         tool.setName(name);
         tool.setDescription(name);
-        tool.setInputSchema("{\"type\":\"object\"}");
+        tool.setInputSchema(inputSchema.strip());
         tool.setRiskLevel(risk);
         tool.setOwnerTeam("shop-team");
         tool.setKind(ToolKind.REST);

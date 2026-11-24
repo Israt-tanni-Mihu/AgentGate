@@ -53,6 +53,12 @@
             <artifactId>spring-boot-starter-restclient</artifactId>
         </dependency>
 
+        <!-- FR5 guards: JSON Schema validation of tool arguments (see SchemaValidationStep). -->
+        <dependency>
+            <groupId>com.networknt</groupId>
+            <artifactId>json-schema-validator</artifactId>
+        </dependency>
+
         <!-- FR2: the gateway issues agent tokens (Authorization Server) and checks them (Resource Server). -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
