@@ -71,3 +71,28 @@ e.g. `X-On-Behalf-Of: 1` = customer 1 (Rahim Uddin).
 **Known limitation:** "support-bot may read only its customer's **own** orders" cannot be decided from the arguments:
 `getOrder` takes only an order id, and which customer owns the order is only known from the **result**.
 This needs a result check, which comes with the guards (FR5). Until then `support-read-orders` allows any order id.
+
+## Policy playground (FR9)
+
+`POST /api/admin/policies/playground` (admin login) answers "what would the gateway decide for this call?"
+**without** calling the tool and **without** changing anything.
+
+```json
+{
+  "agentId": "support-bot",
+  "toolName": "issueRefund",
+  "arguments": { "orderId": 1001, "amount": 5000, "reason": "damaged" },
+  "endUser": "1",
+  "policyVersion": null
+}
+```
+
+- `policyVersion` empty → the **ACTIVE** version (the same in-memory copy live calls use). A number → that version,
+  e.g. a **DRAFT** you want to try before activating it. Testing a draft never activates it.
+- The answer has `decision` (ALLOW/DENY), `ruleId` (or `default-deny`), `reason`, `policyVersion`, `policyStatus`,
+  `dryRun`, a `note`, and `checks`: every rule in order with its result —
+  `NOT_FOR_THIS_CALL` (other agent/tool), `CONDITION_FAILED` (with the failing condition), `MATCHED`,
+  or `NOT_CHECKED` (a DENY rule had already decided).
+- It calls the same `PolicyEngine.explain(...)` method that the live `PolicyStep` uses (`evaluate()` is just
+  `explain().decision()`), so the playground and real traffic cannot disagree.
+- Unknown agent / tool / version → `404` Problem Details (`Agent not found`, `Unknown tool`, `Policy version not found`).

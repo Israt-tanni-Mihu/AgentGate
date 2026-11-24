@@ -113,6 +113,38 @@ class PolicyEngineTest {
                 .allowed()).isFalse();
     }
 
+    @Test
+    void explainRecordsWhatHappenedToEveryRuleAndAgreesWithEvaluate() {
+        PolicyRule denySmallRefund = new PolicyRule("no-tiny-refunds", null, Effect.DENY, List.of("*"),
+                List.of("issueRefund"), List.of(new Condition("amount", "lessThanOrEqual", NODES.numberNode(10))));
+        List<PolicyRule> rules = List.of(OWN_CUSTOMER, REFUND_UP_TO_2000, denySmallRefund, REFUND_UP_TO_2000_COPY);
+        PolicySnapshot policy = new PolicySnapshot(7, false, rules);
+
+        PolicyInput big = new PolicyInput("support-bot", null, "issueRefund", JSON.readTree("{\"amount\": 5000}"));
+        PolicyEvaluation bigResult = engine.explain(policy, big);
+        assertThat(bigResult.decision()).isEqualTo(engine.evaluate(policy, big));
+        assertThat(bigResult.checks()).extracting(PolicyEvaluation.RuleCheck::result).containsExactly(
+                PolicyEvaluation.Result.NOT_FOR_THIS_CALL,   // own-customer is for getCustomer
+                PolicyEvaluation.Result.CONDITION_FAILED,    // 5000 > 2000
+                PolicyEvaluation.Result.CONDITION_FAILED,    // 5000 > 10, so the DENY rule does not match
+                PolicyEvaluation.Result.CONDITION_FAILED);
+        assertThat(bigResult.checks().get(1).detail()).contains("5000");
+
+        PolicyInput tiny = new PolicyInput("support-bot", null, "issueRefund", JSON.readTree("{\"amount\": 5}"));
+        PolicyEvaluation tinyResult = engine.explain(policy, tiny);
+        assertThat(tinyResult.decision()).isEqualTo(engine.evaluate(policy, tiny));
+        assertThat(tinyResult.decision().ruleId()).isEqualTo("no-tiny-refunds");
+        assertThat(tinyResult.checks()).extracting(PolicyEvaluation.RuleCheck::result).containsExactly(
+                PolicyEvaluation.Result.NOT_FOR_THIS_CALL,
+                PolicyEvaluation.Result.MATCHED,
+                PolicyEvaluation.Result.MATCHED,
+                PolicyEvaluation.Result.NOT_CHECKED);        // the DENY already decided
+    }
+
+    static final PolicyRule REFUND_UP_TO_2000_COPY = new PolicyRule("refund-max-copy", null, Effect.ALLOW,
+            List.of("support-bot"), List.of("issueRefund"),
+            List.of(new Condition("amount", "lessThanOrEqual", NODES.numberNode(2000))));
+
     private PolicyDecision decide(List<PolicyRule> rules, String agent, String endUser, String tool, String args) {
         JsonNode arguments = JSON.readTree(args);
         return engine.evaluate(new PolicySnapshot(7, false, rules), new PolicyInput(agent, endUser, tool, arguments));

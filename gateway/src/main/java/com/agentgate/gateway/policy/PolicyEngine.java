@@ -1,5 +1,7 @@
 package com.agentgate.gateway.policy;
 
+import com.agentgate.gateway.policy.PolicyEvaluation.Result;
+import com.agentgate.gateway.policy.PolicyEvaluation.RuleCheck;
 import com.agentgate.gateway.policy.operator.ConditionOperator;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -38,24 +40,46 @@ public class PolicyEngine {
         return Optional.ofNullable(operators.get(name));
     }
 
+    /** Used by the live pipeline (PolicyStep). Same code path as {@link #explain}, so both always agree. */
     public PolicyDecision evaluate(PolicySnapshot policy, PolicyInput input) {
+        return explain(policy, input).decision();
+    }
+
+    /**
+     * The ONE place where the decision is made. Besides the decision it records what happened to every
+     * rule; the playground (FR9) shows that trace, the pipeline ignores it.
+     */
+    public PolicyEvaluation explain(PolicySnapshot policy, PolicyInput input) {
         PolicyRule firstAllow = null;
         List<String> nearMisses = new ArrayList<>();
+        List<RuleCheck> checks = new ArrayList<>();
+        List<PolicyRule> rules = policy.rules();
 
-        for (PolicyRule rule : policy.rules()) {
+        for (int i = 0; i < rules.size(); i++) {
+            PolicyRule rule = rules.get(i);
             if (!rule.appliesTo(input.agentId(), input.toolName())) {
+                checks.add(new RuleCheck(rule.id(), rule.effect(), Result.NOT_FOR_THIS_CALL,
+                        "rule is for agents " + rule.agents() + " and tools " + rule.tools()));
                 continue;
             }
             String failure = firstFailedCondition(rule, input);
             if (failure != null) {
+                checks.add(new RuleCheck(rule.id(), rule.effect(), Result.CONDITION_FAILED, failure));
                 if (rule.effect() == PolicyRule.Effect.ALLOW) {
                     nearMisses.add("rule '" + rule.id() + "' did not apply because " + failure);
                 }
                 continue;
             }
+            checks.add(new RuleCheck(rule.id(), rule.effect(), Result.MATCHED,
+                    rule.conditions().isEmpty() ? "no conditions" : "all conditions are true"));
             if (rule.effect() == PolicyRule.Effect.DENY) {
-                return new PolicyDecision(false, rule.id(), "Denied by rule '" + rule.id() + "'"
+                for (PolicyRule rest : rules.subList(i + 1, rules.size())) {
+                    checks.add(new RuleCheck(rest.id(), rest.effect(), Result.NOT_CHECKED,
+                            "a DENY rule already decided the call"));
+                }
+                PolicyDecision denied = new PolicyDecision(false, rule.id(), "Denied by rule '" + rule.id() + "'"
                         + (rule.description() == null ? "" : ": " + rule.description()), policy.version());
+                return new PolicyEvaluation(denied, checks);
             }
             if (firstAllow == null) {
                 firstAllow = rule;
@@ -63,13 +87,14 @@ public class PolicyEngine {
         }
 
         if (firstAllow != null) {
-            return new PolicyDecision(true, firstAllow.id(), "Allowed by rule '" + firstAllow.id() + "'", policy.version());
+            return new PolicyEvaluation(new PolicyDecision(true, firstAllow.id(),
+                    "Allowed by rule '" + firstAllow.id() + "'", policy.version()), checks);
         }
         String reason = "No rule allows agent '" + input.agentId() + "' to call '" + input.toolName() + "' (default deny)";
         if (!nearMisses.isEmpty()) {
             reason += ". " + String.join("; ", nearMisses);
         }
-        return new PolicyDecision(false, PolicyDecision.DEFAULT_DENY, reason, policy.version());
+        return new PolicyEvaluation(new PolicyDecision(false, PolicyDecision.DEFAULT_DENY, reason, policy.version()), checks);
     }
 
     /** Null if every condition holds; otherwise an explanation of the first one that does not. */

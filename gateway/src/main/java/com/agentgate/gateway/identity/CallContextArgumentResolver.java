@@ -19,7 +19,8 @@ public class CallContextArgumentResolver implements HandlerMethodArgumentResolve
     public static final String ON_BEHALF_OF_HEADER = "X-On-Behalf-Of";
 
     /** Simple user ids only: blocks smuggling tricks like "cust-1, cust-2", spaces, quotes or very long values. */
-    private static final Pattern END_USER_ID = Pattern.compile("^[A-Za-z0-9._@:-]{1,128}$");
+    public static final String END_USER_ID_REGEX = "^[A-Za-z0-9._@:-]{1,128}$";
+    private static final Pattern END_USER_ID = Pattern.compile(END_USER_ID_REGEX);
 
     @Override
     public boolean supportsParameter(MethodParameter parameter) {
