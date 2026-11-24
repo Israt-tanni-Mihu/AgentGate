@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AgentGate approvals</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; max-width: 60rem; }
+    .card { border: 1px solid #ccc; border-radius: 6px; padding: 1rem; margin-bottom: 1rem; }
+    pre { background: #f4f4f4; padding: .5rem; overflow-x: auto; }
+    button { margin-right: .5rem; }
+  </style>
+</head>
+<body>
+  <h1>Pending approvals</h1>
+  <p id="status">Loading…</p>
+  <div id="list"></div>
+  <script>
+    // Browser already holds the approver's Basic login for this site, so fetch() sends it automatically.
+    const JSON_HEADERS = { 'Content-Type': 'application/json' };
+
+    async function post(id, action, body) {
+      const res = await fetch('/api/approvals/' + id + '/' + action,
+        { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify(body) });
+      if (!res.ok) { alert((await res.json()).detail || res.statusText); }
+      load();
+    }
+
+    function button(label, onClick) {
+      const b = document.createElement('button');
+      b.textContent = label;
+      b.onclick = onClick;
+      return b;
+    }
+
+    async function load() {
+      const res = await fetch('/api/approvals?state=PENDING');
+      const page = await res.json();
+      const list = document.getElementById('list');
+      list.replaceChildren();
+      document.getElementById('status').textContent = page.content.length + ' pending (refreshes every 5 s)';
+      for (const a of page.content) {
+        const card = document.createElement('div');
+        card.className = 'card';
+        const title = document.createElement('strong');
+        // textContent (not innerHTML): arguments come from an agent and must never be run as HTML.
+        title.textContent = a.toolName + ' by ' + a.agentId + (a.endUserId ? ' for user ' + a.endUserId : '');
+        const args = document.createElement('pre');
+        args.textContent = JSON.stringify(a.originalArguments, null, 2);
+        const expires = document.createElement('div');
+        expires.textContent = 'Expires: ' + a.expiresAt;
+        card.append(title, args, expires,
+          button('Approve', () => post(a.id, 'approve', {})),
+          button('Reject', () => { const r = prompt('Reason?'); if (r) post(a.id, 'reject', { reason: r }); }),
+          button('Edit…', () => {
+            const text = prompt('New arguments (JSON)', JSON.stringify(a.originalArguments));
+            if (text) post(a.id, 'edit', { arguments: JSON.parse(text) });
+          }));
+        list.append(card);
+      }
+    }
+    load();
+    setInterval(load, 5000);
+  </script>
+</body>
+</html>

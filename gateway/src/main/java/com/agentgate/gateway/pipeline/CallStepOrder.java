@@ -16,6 +16,8 @@ public final class CallStepOrder {
     public static final int LIMITS = 150;
     public static final int SCHEMA = 200;
     public static final int POLICY = 300;
+    /** FR4: after the policy, before the forward. HIGH-risk calls wait here for a human. */
+    public static final int APPROVAL = 350;
     public static final int TRUNCATION = 400;
     public static final int REDACTION = 500;
     public static final int OWNERSHIP = 600;

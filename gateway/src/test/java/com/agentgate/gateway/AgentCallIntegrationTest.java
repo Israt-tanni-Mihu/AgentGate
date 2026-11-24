@@ -39,7 +39,7 @@ import tools.jackson.databind.ObjectMapper;
  * Shared Spring context, so the in-memory state (rate counters, kill switches) is reset before and after
  * every test. Otherwise one test would use up the quota or switch off a tool for the next one.
  */
-@SpringBootTest
+@SpringBootTest(properties = {"agentgate.approval.timeout=3s", "agentgate.approval.webhook-url="})
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)
 public abstract class AgentCallIntegrationTest {
@@ -91,7 +91,7 @@ public abstract class AgentCallIntegrationTest {
         toolRepository.deleteAll();
         toolRepository.save(tool("getCustomer", "GET", "/api/customers/{id}", RiskLevel.LOW));
         toolRepository.save(tool("getOrder", "GET", "/api/orders/{id}", RiskLevel.LOW));
-        toolRepository.save(tool("issueRefund", "POST", "/api/refunds", RiskLevel.HIGH));
+        toolRepository.save(tool("issueRefund", "POST", "/api/refunds", RiskLevel.MEDIUM));
     }
 
     @AfterEach
@@ -131,7 +131,7 @@ public abstract class AgentCallIntegrationTest {
         return httpBasic("admin", "admin-local-only");
     }
 
-    private String tokenFor(String agent) {
+    protected String tokenFor(String agent) {
         MvcTestResult result = mvc.post().uri("/oauth2/token")
                 .with(httpBasic(agent, agent + "-local-secret"))
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)

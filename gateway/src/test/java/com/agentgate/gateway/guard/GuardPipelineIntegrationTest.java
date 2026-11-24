@@ -123,7 +123,7 @@ class GuardPipelineIntegrationTest {
         toolRepository.deleteAll();
         toolRepository.save(tool("getCustomer", "GET", "/api/customers/{id}", RiskLevel.LOW, CUSTOMER_SCHEMA));
         toolRepository.save(tool("getOrder", "GET", "/api/orders/{id}", RiskLevel.LOW, ORDER_SCHEMA));
-        toolRepository.save(tool("issueRefund", "POST", "/api/refunds", RiskLevel.HIGH, REFUND_SCHEMA));
+        toolRepository.save(tool("issueRefund", "POST", "/api/refunds", RiskLevel.MEDIUM, REFUND_SCHEMA));
     }
 
     // ---------- schema guard (before the policy) ----------

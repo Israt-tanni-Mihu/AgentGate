@@ -96,7 +96,7 @@ class CallPipelineIntegrationTest {
                 {"type":"object","properties":{"id":{"type":"integer"}},"required":["id"],"additionalProperties":false}"""));
         toolRepository.save(tool("getOrder", "GET", "/api/orders/{id}", RiskLevel.LOW, """
                 {"type":"object","properties":{"id":{"type":"string"}},"required":["id"],"additionalProperties":false}"""));
-        toolRepository.save(tool("issueRefund", "POST", "/api/refunds", RiskLevel.HIGH, """
+        toolRepository.save(tool("issueRefund", "POST", "/api/refunds", RiskLevel.MEDIUM, """
                 {"type":"object","properties":{"orderId":{"type":"integer"},"amount":{"type":"number"},"reason":{"type":"string"}},"required":["orderId","amount","reason"],"additionalProperties":false}"""));
         toolRepository.save(tool("sendSms", "POST", "/api/sms", RiskLevel.MEDIUM, """
                 {"type":"object","properties":{"customerId":{"type":"integer"},"message":{"type":"string"}},"required":["customerId","message"],"additionalProperties":false}"""));

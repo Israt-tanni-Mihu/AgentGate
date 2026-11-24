@@ -1,5 +1,6 @@
 package com.agentgate.gateway.identity;
 
+import com.agentgate.gateway.approval.ApprovalProperties;
 import com.agentgate.gateway.shared.web.ProblemDetailsSecurityHandler;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -19,12 +20,13 @@ import org.springframework.security.web.SecurityFilterChain;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Who may call what (course rule C3: security on every endpoint). Four filter chains, checked in @Order:
+ * Who may call what (course rule C3: security on every endpoint). Five filter chains, checked in @Order:
  *
  * 1. /oauth2/token, /oauth2/jwks …  Spring Authorization Server: agents trade client id + secret for a JWT.
  * 2. /api/admin/**                  admin only, HTTP Basic.
- * 3. /api/agent/**                  agents only, "Authorization: Bearer <JWT>" (resource server).
- * 4. everything else                health + Swagger UI open, the rest denied (default deny).
+ * 3. /api/approvals/**, /approvals.html  approvers only, HTTP Basic (FR4).
+ * 4. /api/agent/**                  agents only, "Authorization: Bearer <JWT>" (resource server).
+ * 5. everything else                health + Swagger UI open, the rest denied (default deny).
  */
 @Configuration
 @EnableConfigurationProperties(GatewaySecurityProperties.class)
@@ -56,8 +58,25 @@ public class SecurityConfig {
         return http.build();
     }
 
+    /** FR4: approvers (HTTP Basic, role APPROVER). Agent tokens are not accepted here, so an agent cannot approve itself. */
     @Bean
     @Order(3)
+    SecurityFilterChain approverChain(HttpSecurity http, ObjectMapper objectMapper) throws Exception {
+        var problems = new ProblemDetailsSecurityHandler(objectMapper,
+                ProblemDetailsSecurityHandler.basicChallenge("AgentGate approvals"));
+        http.securityMatcher("/api/approvals/**", "/approvals.html")
+                .authorizeHttpRequests(auth -> auth.anyRequest().hasRole("APPROVER"))
+                .httpBasic(basic -> basic.authenticationEntryPoint(problems))
+                .exceptionHandling(ex -> ex.authenticationEntryPoint(problems).accessDeniedHandler(problems))
+                .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                // Browsers remember Basic logins, so CSRF is blocked differently: every POST must be application/json
+                // (a cross-site HTML form cannot send that), see ApprovalController.
+                .csrf(csrf -> csrf.disable());
+        return http.build();
+    }
+
+    @Bean
+    @Order(4)
     SecurityFilterChain agentChain(HttpSecurity http, ObjectMapper objectMapper, AgentRepository agentRepository)
             throws Exception {
         var problems = new ProblemDetailsSecurityHandler(objectMapper, new BearerTokenAuthenticationEntryPoint());
@@ -73,7 +92,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    @Order(4)
+    @Order(5)
     SecurityFilterChain everythingElseChain(HttpSecurity http, ObjectMapper objectMapper) throws Exception {
         var problems = new ProblemDetailsSecurityHandler(objectMapper, (request, response, ex) -> { });
         http.authorizeHttpRequests(auth -> auth
@@ -95,11 +114,16 @@ public class SecurityConfig {
 
     /** The single admin account, from environment variables (no password in the repo outside local defaults). */
     @Bean
-    UserDetailsService adminUsers(GatewaySecurityProperties properties, PasswordEncoder passwordEncoder) {
+    UserDetailsService adminUsers(GatewaySecurityProperties properties, ApprovalProperties approval,
+                                  PasswordEncoder passwordEncoder) {
         var admin = User.withUsername(properties.admin().username())
                 .password(passwordEncoder.encode(properties.admin().password()))
                 .roles("ADMIN")
                 .build();
-        return new InMemoryUserDetailsManager(admin);
+        var approver = User.withUsername(approval.approver().username())
+                .password(passwordEncoder.encode(approval.approver().password()))
+                .roles("APPROVER")
+                .build();
+        return new InMemoryUserDetailsManager(admin, approver);
     }
 }

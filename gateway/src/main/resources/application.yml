@@ -62,6 +62,13 @@ agentgate:
     agent-daily-quota: 1000
     tool-daily-quota: 5000
     writes-per-hour-per-agent: 20   # blast-radius cap on WRITE calls
+  approval:
+    # FR4. A HIGH-risk call waits this long for a human, then it is rejected (state EXPIRED).
+    timeout: 2m
+    webhook-url: ${APPROVAL_WEBHOOK_URL:}   # empty = no webhook
+    approver:
+      username: ${APPROVER_USERNAME:}
+      password: ${APPROVER_PASSWORD:}
 
 ---
 # ---------- "local" profile: safe defaults that match docker-compose.yml ----------
@@ -79,6 +86,11 @@ agentgate:
     admin:
       username: ${ADMIN_USERNAME:admin}
       password: ${ADMIN_PASSWORD:admin-local-only}
+  approval:
+    webhook-url: ${APPROVAL_WEBHOOK_URL:http://localhost:8081/hooks/approvals}   # mock-tools just logs it
+    approver:
+      username: ${APPROVER_USERNAME:approver}
+      password: ${APPROVER_PASSWORD:approver-local-only}
   # Two demo agents are created at startup in "local" only (DemoAgentSeeder).
   demo-agents:
     support-bot-secret: ${SUPPORT_BOT_SECRET:support-bot-local-secret}

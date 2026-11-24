@@ -10,5 +10,7 @@ public interface ToolRepository extends JpaRepository<Tool, Long> {
 
     boolean existsByName(String name);
 
+    java.util.List<Tool> findByAccessMode(AccessMode accessMode);
+
     boolean existsByNameAndIdNot(String name, Long id);
 }
