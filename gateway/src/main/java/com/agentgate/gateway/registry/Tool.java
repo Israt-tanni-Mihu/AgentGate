@@ -53,6 +53,10 @@ public class Tool {
     @Column(name = "access_mode", nullable = false, length = 10)
     private AccessMode accessMode;
 
+    /** FR10: milliseconds the gateway waits for this tool; null = the default from application.yml. */
+    @Column(name = "timeout_ms")
+    private Integer timeoutMs;
+
     @Column(name = "base_url", length = 500)
     private String baseUrl;
 
@@ -107,6 +111,9 @@ public class Tool {
 
     public AccessMode getAccessMode() { return accessMode; }
     public void setAccessMode(AccessMode accessMode) { this.accessMode = accessMode; }
+
+    public Integer getTimeoutMs() { return timeoutMs; }
+    public void setTimeoutMs(Integer timeoutMs) { this.timeoutMs = timeoutMs; }
 
     public String getBaseUrl() { return baseUrl; }
     public void setBaseUrl(String baseUrl) { this.baseUrl = baseUrl; }

@@ -4,6 +4,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 
 import com.agentgate.gateway.admin.KillSwitchRepository;
 import com.agentgate.gateway.admin.KillSwitchState;
+import com.agentgate.gateway.health.ToolBreakers;
 import com.agentgate.gateway.limits.AlertRepository;
 import com.agentgate.gateway.limits.RateCounters;
 import com.agentgate.gateway.registry.RiskLevel;
@@ -39,7 +40,9 @@ import tools.jackson.databind.ObjectMapper;
  * Shared Spring context, so the in-memory state (rate counters, kill switches) is reset before and after
  * every test. Otherwise one test would use up the quota or switch off a tool for the next one.
  */
-@SpringBootTest(properties = {"agentgate.approval.timeout=3s", "agentgate.approval.webhook-url="})
+@SpringBootTest(properties = {"agentgate.approval.timeout=3s", "agentgate.approval.webhook-url=",
+        // FR10: a short open time so the health tests run in seconds (the default timeout stays 3 s)
+        "agentgate.resilience.wait-in-open-state=1s"})
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)
 public abstract class AgentCallIntegrationTest {
@@ -50,6 +53,9 @@ public abstract class AgentCallIntegrationTest {
     private static HttpServer shopServer;
     /** Every request that really reached the fake shop. Blocked calls must not appear here. */
     protected static final List<ReceivedRequest> received = new CopyOnWriteArrayList<>();
+    /** FR10: make the fake shop slow or broken. Reset before every test. */
+    protected static volatile long shopDelayMs;
+    protected static volatile int shopFailStatus;   // 0 = answer normally
 
     @Autowired protected MockMvcTester mvc;
     @Autowired protected ObjectMapper objectMapper;
@@ -58,6 +64,7 @@ public abstract class AgentCallIntegrationTest {
     @Autowired protected RateCounters rateCounters;
     @Autowired protected KillSwitchRepository killSwitchRepository;
     @Autowired protected KillSwitchState killSwitchState;
+    @Autowired protected ToolBreakers toolBreakers;
 
     @BeforeAll
     static void startFakeShop() throws IOException {
@@ -65,6 +72,18 @@ public abstract class AgentCallIntegrationTest {
         shopServer.createContext("/", exchange -> {
             String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
             received.add(new ReceivedRequest(exchange.getRequestMethod(), exchange.getRequestURI().getRawPath(), body));
+            if (shopDelayMs > 0) {
+                try {
+                    Thread.sleep(shopDelayMs);
+                } catch (InterruptedException e) {
+                    return;   // the gateway gave up waiting
+                }
+            }
+            if (shopFailStatus != 0) {
+                exchange.sendResponseHeaders(shopFailStatus, -1);
+                exchange.close();
+                return;
+            }
             boolean isWrite = exchange.getRequestMethod().equals("POST");
             byte[] answer = (isWrite ? "{\"result\":\"created\"}" : "{\"result\":\"ok\"}").getBytes(StandardCharsets.UTF_8);
             exchange.getResponseHeaders().add("Content-Type", "application/json");
@@ -73,6 +92,8 @@ public abstract class AgentCallIntegrationTest {
                 out.write(answer);
             }
         });
+        // Many threads: a slow answer (FR10 tests) must not block the next request.
+        shopServer.setExecutor(java.util.concurrent.Executors.newCachedThreadPool());
         shopServer.start();
     }
 
@@ -84,6 +105,9 @@ public abstract class AgentCallIntegrationTest {
     @BeforeEach
     void resetStateAndRegisterTools() {
         received.clear();
+        shopDelayMs = 0;
+        shopFailStatus = 0;
+        toolBreakers.reset();
         rateCounters.reset();
         alertRepository.deleteAll();
         killSwitchRepository.deleteAll();
@@ -96,6 +120,9 @@ public abstract class AgentCallIntegrationTest {
 
     @AfterEach
     void leaveNoStateBehind() {
+        shopDelayMs = 0;
+        shopFailStatus = 0;
+        toolBreakers.reset();
         rateCounters.reset();
         killSwitchRepository.deleteAll();
         killSwitchState.reload();

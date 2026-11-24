@@ -12,11 +12,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
-import org.springframework.stereotype.Component;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -30,9 +28,9 @@ import tools.jackson.databind.node.ObjectNode;
  * Arguments are mapped like this (tool GET /api/orders/{id}, arguments {"id": 1001}):
  * path variables come from the argument with the same name; for GET/DELETE the remaining arguments become
  * query parameters; for POST/PUT/PATCH they become the JSON body.
+ *
+ * Not a bean on its own: {@code health.HealthConfig} wraps it with the timeout and circuit breaker (FR10).
  */
-@Component
-@Order(CallStepOrder.FORWARD)
 public class ForwardStep implements CallStep {
 
     private static final Pattern PATH_VARIABLE = Pattern.compile("\\{([^}/]+)}");
@@ -42,7 +40,7 @@ public class ForwardStep implements CallStep {
     private final ObjectMapper objectMapper;
 
     public ForwardStep(RestClient.Builder builder, ObjectMapper objectMapper) {
-        // Simple fixed timeouts for now; per-tool timeouts and circuit breakers come with FR10.
+        // Safety net only. The real per-tool timeout (max 10 s) is enforced by ResilientForwardStep (FR10).
         HttpClient httpClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
         JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(httpClient);
         requestFactory.setReadTimeout(Duration.ofSeconds(10));

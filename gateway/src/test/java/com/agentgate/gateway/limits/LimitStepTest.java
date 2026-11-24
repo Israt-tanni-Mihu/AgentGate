@@ -134,7 +134,7 @@ class LimitStepTest {
     private static ToolCall call(String agentId, String toolName, String httpMethod) {
         ToolResponse tool = new ToolResponse(1L, toolName, "test tool", null, RiskLevel.LOW, "shop-team",
                 ToolKind.REST, httpMethod, "http://localhost:8081", "/api/test", true,
-                AccessMode.defaultFor(ToolKind.REST, httpMethod), START, START);
+                AccessMode.defaultFor(ToolKind.REST, httpMethod), null, START, START);
         return new ToolCall(tool, new ObjectMapper().createObjectNode(),
                 new CallContext(agentId, null, Clearance.LOW));
     }

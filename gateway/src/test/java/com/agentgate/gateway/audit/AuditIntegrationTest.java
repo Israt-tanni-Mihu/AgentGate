@@ -13,6 +13,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -79,8 +81,13 @@ class AuditIntegrationTest extends AgentCallIntegrationTest {
     void aRateLimitedCallIsRecorded() {
         rateCounters.reset();
         MvcTestResult last = null;
-        for (int i = 0; i < 61; i++) {   // agent-per-minute is 60
+        // agent-per-minute is 60. The window is fixed (one clock minute), so if the minute changes in the middle of
+        // the loop the counter starts again: keep calling (up to two windows) until the first 429.
+        for (int i = 0; i < 121; i++) {
             last = call("analytics-bot", null, "getOrder", "{\"id\": \"1\"}");
+            if (last.getResponse().getStatus() == 429) {
+                break;
+            }
         }
         assertThat(last).hasStatus(429);
         assertThat(auditRowOf(last)).containsEntry("decided_by_step", "LimitStep")
@@ -138,12 +145,16 @@ class AuditIntegrationTest extends AgentCallIntegrationTest {
     @Test
     void fiftyParallelCallsGiveOneUnbrokenChain() {
         String token = tokenFor("support-bot");
+        // Own threads, not ForkJoinPool.commonPool(): the gateway's HTTP client also completes its requests on the
+        // common pool, so 50 blocked test threads there would starve it (a test-driver problem, not a gateway one).
+        ExecutorService callers = Executors.newVirtualThreadPerTaskExecutor();
         List<CompletableFuture<MvcTestResult>> calls = IntStream.range(0, 50)
                 .mapToObj(i -> CompletableFuture.supplyAsync(() -> mvc.post().uri("/api/agent/calls/getCustomer")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token).header("X-On-Behalf-Of", "1")
-                        .contentType(MediaType.APPLICATION_JSON).content("{\"id\": 1}").exchange()))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"id\": 1}").exchange(), callers))
                 .toList();
         calls.forEach(c -> assertThat(c.join()).hasStatusOk());
+        callers.close();
 
         assertThat(verify()).hasStatusOk().bodyJson()
                 .hasPathSatisfying("$.status", v -> v.assertThat().isEqualTo("OK"))

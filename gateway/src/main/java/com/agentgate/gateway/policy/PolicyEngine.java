@@ -40,6 +40,28 @@ public class PolicyEngine {
         return Optional.ofNullable(operators.get(name));
     }
 
+    /**
+     * "Could this agent ever call this tool?", for the tool list. Arguments are not known yet, so a rule with
+     * conditions is not judged here: the tool is listed when an ALLOW rule applies and no unconditional DENY does.
+     * Dry-run lets every call through, so every tool is listed.
+     */
+    public boolean mayCall(PolicySnapshot policy, String agentId, String toolName) {
+        if (policy.dryRun()) {
+            return true;
+        }
+        boolean allowed = false;
+        for (PolicyRule rule : policy.rules()) {
+            if (!rule.appliesTo(agentId, toolName)) {
+                continue;
+            }
+            if (rule.effect() == PolicyRule.Effect.DENY && rule.conditions().isEmpty()) {
+                return false;
+            }
+            allowed |= rule.effect() == PolicyRule.Effect.ALLOW;
+        }
+        return allowed;
+    }
+
     /** Used by the live pipeline (PolicyStep). Same code path as {@link #explain}, so both always agree. */
     public PolicyDecision evaluate(PolicySnapshot policy, PolicyInput input) {
         return explain(policy, input).decision();

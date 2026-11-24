@@ -12,5 +12,7 @@ public interface ToolRepository extends JpaRepository<Tool, Long> {
 
     java.util.List<Tool> findByAccessMode(AccessMode accessMode);
 
+    java.util.List<Tool> findByEnabledTrueOrderByNameAsc();
+
     boolean existsByNameAndIdNot(String name, Long id);
 }

@@ -31,7 +31,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,metrics
   endpoint:
     health:
       probes:
@@ -62,6 +62,15 @@ agentgate:
     agent-daily-quota: 1000
     tool-daily-quota: 5000
     writes-per-hour-per-agent: 20   # blast-radius cap on WRITE calls
+  resilience:
+    # FR10. One circuit breaker per tool: it OPENS when at least 50% of the last 10 calls failed (needs 5 calls first),
+    # stays open 15 s (the tool is hidden from agents), then lets 3 trial calls through (HALF_OPEN).
+    default-timeout: 3s           # used when a tool has no timeout of its own
+    sliding-window-size: 10
+    minimum-calls: 5
+    failure-rate-threshold: 50
+    wait-in-open-state: 15s
+    half-open-trial-calls: 3
   approval:
     # FR4. A HIGH-risk call waits this long for a human, then it is rejected (state EXPIRED).
     timeout: 2m

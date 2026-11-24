@@ -42,6 +42,12 @@ public class KillSwitchState {
         }
     }
 
+    /** True when a call of this agent to this tool would be stopped by a switch; used to hide the tool from lists. */
+    public boolean blocks(String agentId, String toolName, com.agentgate.gateway.registry.AccessMode mode) {
+        return isAgentKilled(agentId) || isToolKilled(toolName)
+                || (allWritesKilled && mode == com.agentgate.gateway.registry.AccessMode.WRITE);
+    }
+
     boolean isAgentKilled(String agentId) {
         return killedAgents.contains(agentId);
     }

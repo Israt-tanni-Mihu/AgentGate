@@ -1,5 +1,6 @@
 package com.agentgate.gateway.registry;
 
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -41,6 +42,12 @@ public class ToolService {
         return repository.findByName(name).map(this::toResponse);
     }
 
+    /** Enabled tools only, by name; the base of the agent tool list (ToolCatalogService). */
+    @Transactional(readOnly = true)
+    public List<ToolResponse> listEnabled() {
+        return repository.findByEnabledTrueOrderByNameAsc().stream().map(this::toResponse).toList();
+    }
+
     @Transactional(readOnly = true)
     public Page<ToolResponse> list(Pageable pageable) {
         return repository.findAll(pageable).map(this::toResponse);
@@ -79,13 +86,14 @@ public class ToolService {
         tool.setAccessMode(request.accessMode() != null
                 ? request.accessMode()
                 : AccessMode.defaultFor(request.kind(), request.httpMethod()));
+        tool.setTimeoutMs(request.timeoutMs());
     }
 
     ToolResponse toResponse(Tool tool) {
         return new ToolResponse(tool.getId(), tool.getName(), tool.getDescription(),
                 readJson(tool.getInputSchema()), tool.getRiskLevel(), tool.getOwnerTeam(), tool.getKind(),
                 tool.getHttpMethod(), tool.getBaseUrl(), tool.getPath(), tool.isEnabled(),
-                tool.getAccessMode(), tool.getCreatedAt(), tool.getUpdatedAt());
+                tool.getAccessMode(), tool.getTimeoutMs(), tool.getCreatedAt(), tool.getUpdatedAt());
     }
 
     JsonNode readJson(String json) {

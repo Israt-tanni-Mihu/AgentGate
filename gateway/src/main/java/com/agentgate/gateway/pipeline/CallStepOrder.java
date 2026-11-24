@@ -12,6 +12,8 @@ public final class CallStepOrder {
 
     /** FR8: the very first check. A disabled agent or tool stops here, before any counter or policy runs. */
     public static final int KILL_SWITCH = 100;
+    /** FR10: a tool whose circuit breaker is OPEN fails fast, before it uses up limits or asks a human. */
+    public static final int TOOL_AVAILABILITY = 120;
     /** FR6: rate limits and quotas, before the schema check, so floods are counted and stopped early. */
     public static final int LIMITS = 150;
     public static final int SCHEMA = 200;

@@ -3,6 +3,8 @@ package com.agentgate.gateway.registry;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.AssertTrue;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -50,7 +52,12 @@ public record ToolRequest(
         Boolean enabled,
 
         @Schema(description = "READ or WRITE (FR6). Omit to use the default from the HTTP method: GET = READ, others = WRITE")
-        AccessMode accessMode) {
+        AccessMode accessMode,
+
+        @Schema(description = "FR10: how long the gateway waits for this tool, in milliseconds (100-10000). "
+                + "Omit to use the gateway default (agentgate.resilience.default-timeout)", example = "2000")
+        @Min(100) @Max(10_000)
+        Integer timeoutMs) {
 
     @JsonIgnore
     @Schema(hidden = true)

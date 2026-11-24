@@ -17,6 +17,7 @@ public record ToolResponse(
         String path,
         boolean enabled,
         AccessMode accessMode,
+        Integer timeoutMs,
         Instant createdAt,
         Instant updatedAt) {
 }

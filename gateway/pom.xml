@@ -59,6 +59,20 @@
             <artifactId>json-schema-validator</artifactId>
         </dependency>
 
+        <!-- FR10: one circuit breaker and one time limiter per tool; micrometer exposes the breaker state as metrics. -->
+        <dependency>
+            <groupId>io.github.resilience4j</groupId>
+            <artifactId>resilience4j-circuitbreaker</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.github.resilience4j</groupId>
+            <artifactId>resilience4j-timelimiter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.github.resilience4j</groupId>
+            <artifactId>resilience4j-micrometer</artifactId>
+        </dependency>
+
         <!-- FR2: the gateway issues agent tokens (Authorization Server) and checks them (Resource Server). -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
