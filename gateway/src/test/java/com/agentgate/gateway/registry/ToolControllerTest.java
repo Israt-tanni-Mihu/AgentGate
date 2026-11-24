@@ -7,6 +7,7 @@ import static org.mockito.BDDMockito.given;
 import com.agentgate.gateway.registry.importer.ToolImportService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -15,8 +16,10 @@ import org.springframework.test.web.servlet.assertj.MockMvcTester;
 /**
  * Web slice test: only the controller + error handler start; the services are Mockito mocks.
  * Checks HTTP status codes, Bean Validation and the Problem Details format — no database needed.
+ * Security filters are switched off here; security is tested in AgentIdentityIntegrationTest.
  */
 @WebMvcTest(ToolController.class)
+@AutoConfigureMockMvc(addFilters = false)
 class ToolControllerTest {
 
     @Autowired

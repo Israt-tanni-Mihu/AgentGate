@@ -4,6 +4,7 @@ import com.agentgate.gateway.registry.importer.ImportRequest;
 import com.agentgate.gateway.registry.importer.ImportResult;
 import com.agentgate.gateway.registry.importer.ToolImportService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.net.URI;
@@ -26,6 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/admin/tools")
 @Tag(name = "Tool registry (admin)")
+@SecurityRequirement(name = "adminBasic")
 public class ToolController {
 
     private final ToolService toolService;
