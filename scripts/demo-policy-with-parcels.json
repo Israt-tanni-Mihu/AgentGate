@@ -1,0 +1,18 @@
+{
+  "description": "Demo policies for ShopBD + support-bot may track parcels (MCP tool)",
+  "dryRun": false,
+  "rules": [
+    {"id": "support-own-customer-only", "description": "Support bot may read only the profile of the customer it is helping",
+     "effect": "ALLOW", "agents": ["support-bot"], "tools": ["getCustomer"],
+     "conditions": [{"argument": "id", "operator": "matchesEndUser", "value": null}]},
+    {"id": "support-read-orders", "description": "Support bot may read orders",
+     "effect": "ALLOW", "agents": ["support-bot"], "tools": ["getOrder"], "conditions": []},
+    {"id": "support-refund-up-to-2000", "description": "Support bot may refund at most 2000 BDT",
+     "effect": "ALLOW", "agents": ["support-bot"], "tools": ["issueRefund"],
+     "conditions": [{"argument": "amount", "operator": "lessThanOrEqual", "value": 2000}]},
+    {"id": "support-track-parcel", "description": "Support bot may track parcels (tool of a downstream MCP server)",
+     "effect": "ALLOW", "agents": ["support-bot"], "tools": ["track_parcel"], "conditions": []},
+    {"id": "analytics-read-only", "description": "Analytics bot may read orders and customers",
+     "effect": "ALLOW", "agents": ["analytics-bot"], "tools": ["getOrder", "getCustomer"], "conditions": []}
+  ]
+}

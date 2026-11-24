@@ -16,7 +16,7 @@ public record ImportResult(
     public record Item(String name, Outcome outcome, String reason) {
     }
 
-    static ImportResult of(String format, List<Item> items) {
+    public static ImportResult of(String format, List<Item> items) {
         return new ImportResult(format,
                 count(items, Outcome.CREATED), count(items, Outcome.UPDATED), count(items, Outcome.SKIPPED),
                 items);

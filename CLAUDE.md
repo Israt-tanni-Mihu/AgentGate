@@ -87,7 +87,7 @@ Out of scope: building real agents (scripted MCP clients act as agents), a full 
 - [x] Phase 2 — FR2 agent identity (OAuth2 client credentials), FR3 policy engine (default deny, versions, hot reload, dry-run), FR9 playground
 - [x] Phase 3 — FR5 guards (schema validation, redaction, truncation), FR6 limits, FR8 kill switch
 - [ ] Phase 4 — FR4 approval state machine + web page + webhook, FR7 hash-chained audit + verify
-- [ ] Phase 5 — MCP endpoint (custom handler, done), FR10 circuit breakers/health (done), metrics
+- [ ] Phase 5 — MCP endpoint (custom handler, done), downstream MCP servers (done), FR10 circuit breakers/health (done), metrics
 - [ ] Phase 6 — QA scripts (red-team suite, k6 load, fail-safe test, audit tamper test, quick-start), Testcontainers, ArchUnit/Modulith tests, CI
 - [ ] Phase 7 — Docs: C4, ADRs, utility tree, patterns table, evidence report, AI log
 

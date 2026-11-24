@@ -73,6 +73,12 @@
             <artifactId>resilience4j-micrometer</artifactId>
         </dependency>
 
+        <!-- FR1: MCP client, to import tools from and call downstream MCP servers. Plain library: no auto-configuration. -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-mcp</artifactId>
+        </dependency>
+
         <!-- FR2: the gateway issues agent tokens (Authorization Server) and checks them (Resource Server). -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

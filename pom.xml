@@ -21,6 +21,7 @@
     <modules>
         <module>gateway</module>
         <module>mock-tools</module>
+        <module>agent-sim</module>
     </modules>
 
     <properties>
@@ -29,6 +30,7 @@
         <springdoc.version>3.2.1</springdoc.version>
         <json-schema-validator.version>3.0.9</json-schema-validator.version>
         <resilience4j.version>2.4.0</resilience4j.version>
+        <spring-ai.version>2.1.0</spring-ai.version>
     </properties>
 
     <dependencyManagement>
@@ -45,6 +47,14 @@
                 <version>${json-schema-validator.version}</version>
             </dependency>
             <!-- FR10: circuit breaker + time limiter per tool (core libraries, no Spring starter). -->
+            <!-- FR1: Spring AI's MCP client (gateway -> downstream MCP servers, agent-sim -> gateway). -->
+            <dependency>
+                <groupId>org.springframework.ai</groupId>
+                <artifactId>spring-ai-bom</artifactId>
+                <version>${spring-ai.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
             <dependency>
                 <groupId>io.github.resilience4j</groupId>
                 <artifactId>resilience4j-bom</artifactId>

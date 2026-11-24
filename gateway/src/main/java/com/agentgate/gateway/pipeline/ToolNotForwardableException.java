@@ -7,7 +7,7 @@ import org.springframework.web.ErrorResponseException;
 public class ToolNotForwardableException extends ErrorResponseException {
 
     public ToolNotForwardableException(String toolName) {
-        super(HttpStatus.NOT_IMPLEMENTED, ProblemDetail.forStatusAndDetail(HttpStatus.NOT_IMPLEMENTED, "Tool '" + toolName + "' is an MCP tool; forwarding to MCP servers is not implemented yet"), null);
+        super(HttpStatus.NOT_IMPLEMENTED, ProblemDetail.forStatusAndDetail(HttpStatus.NOT_IMPLEMENTED, "No invoker is registered for the kind of tool '" + toolName + "'"), null);
         getBody().setTitle("Tool kind not supported yet");
     }
 }

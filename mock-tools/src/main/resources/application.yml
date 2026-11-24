@@ -5,6 +5,16 @@ spring:
     virtual:
       enabled: true
 
+  ai:
+    mcp:
+      server:
+        name: shop-parcels
+        version: 1.0.0
+        protocol: STREAMABLE
+        type: SYNC
+        streamable-http:
+          mcp-endpoint: /mcp
+
 server:
   port: 8081
 
