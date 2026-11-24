@@ -47,6 +47,12 @@
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
         </dependency>
 
+        <!-- RestClient.Builder bean (Boot 4 moved it to its own module); used to forward calls to tools. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-restclient</artifactId>
+        </dependency>
+
         <!-- FR2: the gateway issues agent tokens (Authorization Server) and checks them (Resource Server). -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

@@ -1,5 +1,6 @@
 package com.agentgate.gateway.registry;
 
+import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -32,6 +33,12 @@ public class ToolService {
     @Transactional(readOnly = true)
     public ToolResponse get(Long id) {
         return toResponse(findOrThrow(id));
+    }
+
+    /** Used by the call pipeline to find the tool an agent wants to call. */
+    @Transactional(readOnly = true)
+    public Optional<ToolResponse> findByName(String name) {
+        return repository.findByName(name).map(this::toResponse);
     }
 
     @Transactional(readOnly = true)
