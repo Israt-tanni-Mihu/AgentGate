@@ -1,6 +1,7 @@
 package com.agentgate.gateway.approval;
 
 import com.agentgate.gateway.guard.SchemaValidationStep;
+import com.agentgate.gateway.guard.SchemaViolationException;
 import com.agentgate.gateway.pipeline.CallChain;
 import com.agentgate.gateway.pipeline.CallOutcome;
 import com.agentgate.gateway.pipeline.CallStep;
@@ -107,7 +108,16 @@ public class ApprovalStep implements CallStep {
     /** The edited arguments pass the SAME schema check and policy as any call, then continue down the chain. */
     private CallOutcome proceedWithEdits(ApprovalDecided decision, ToolCall call, CallChain chain) {
         ToolCall edited = new ToolCall(call.tool(), (ObjectNode) decision.editedArguments(), call.context());
-        CallOutcome outcome = schemaStep.handle(edited, afterSchema -> policyStep.handle(afterSchema, chain));
+        CallOutcome outcome;
+        try {
+            outcome = schemaStep.handle(edited, afterSchema -> policyStep.handle(afterSchema, chain));
+        } catch (SchemaViolationException broken) {
+            // Same clear result as every other non-approved answer (approvalId, state, reason), not a bare 400.
+            Map<String, Object> details = new LinkedHashMap<>(resultFields(decision));
+            details.put("problems", broken.getBody().getProperties().get("problems"));
+            return new CallOutcome.Denied("approval-edit-invalid",
+                    "the approver's edited arguments do not match the tool's schema", details);
+        }
         if (outcome instanceof CallOutcome.Denied denied) {
             Map<String, Object> details = new LinkedHashMap<>(denied.details());
             details.putAll(resultFields(decision));

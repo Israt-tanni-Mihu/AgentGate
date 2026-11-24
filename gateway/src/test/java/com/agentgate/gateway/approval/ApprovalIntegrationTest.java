@@ -102,7 +102,12 @@ class ApprovalIntegrationTest extends AgentCallIntegrationTest {
         assertThat(approverPost(id, "edit",
                 "{\"arguments\": {\"orderId\": 1001, \"amount\": 100, \"reason\": \"x\", \"sneaky\": true}}")).hasStatusOk();
 
-        assertThat(agent.join()).hasStatus(400);   // unknown argument, caught by the schema guard again
+        // Unknown argument, caught by the schema guard again. Same clear result shape as every other outcome.
+        assertThat(agent.join()).hasStatus(403).bodyJson()
+                .hasPathSatisfying("$.approvalId", v -> v.assertThat().isEqualTo(id.toString()))
+                .hasPathSatisfying("$.state", v -> v.assertThat().isEqualTo("APPROVED_WITH_EDITS"))
+                .hasPathSatisfying("$.rule", v -> v.assertThat().isEqualTo("approval-edit-invalid"))
+                .hasPathSatisfying("$.problems[0]", v -> v.assertThat().asString().contains("sneaky"));
         assertThat(received).isEmpty();
     }
 
