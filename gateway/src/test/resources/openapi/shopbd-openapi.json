@@ -1,0 +1,327 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "ShopBD mock tools API",
+    "description": "Fake e-commerce tools (customers, orders, refunds, SMS) used to demonstrate AgentGate.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8081",
+      "description": "Generated server url"
+    }
+  ],
+  "paths": {
+    "/api/sms": {
+      "post": {
+        "tags": [
+          "ShopBD tools"
+        ],
+        "summary": "Send an SMS to a customer",
+        "description": "Write. Sends a text message (max 160 characters) to the customer's registered phone number.",
+        "operationId": "sendSms",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SmsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/SmsMessage"
+                }
+              }
+            }
+          }
+        },
+        "x-risk-level": "medium"
+      }
+    },
+    "/api/refunds": {
+      "post": {
+        "tags": [
+          "ShopBD tools"
+        ],
+        "summary": "Issue a refund for an order",
+        "description": "Write. Moves real money back to the customer. The total refunded for an order can never exceed the order total. Cancelled orders cannot be refunded.",
+        "operationId": "issueRefund",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefundRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refund"
+                }
+              }
+            }
+          }
+        },
+        "x-risk-level": "high"
+      }
+    },
+    "/api/orders/{id}": {
+      "get": {
+        "tags": [
+          "ShopBD tools"
+        ],
+        "summary": "Get an order by id",
+        "description": "Read-only. Returns the order's items, total in BDT, status and the customer it belongs to.",
+        "operationId": "getOrder",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "exclusiveMinimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/Order"
+                }
+              }
+            }
+          }
+        },
+        "x-risk-level": "low"
+      }
+    },
+    "/api/customers/{id}": {
+      "get": {
+        "tags": [
+          "ShopBD tools"
+        ],
+        "summary": "Get a customer by id",
+        "description": "Read-only. Returns the customer's profile including name, email, phone number and national ID number (personal data).",
+        "operationId": "getCustomer",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "exclusiveMinimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/Customer"
+                }
+              }
+            }
+          }
+        },
+        "x-risk-level": "low"
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "SmsRequest": {
+        "type": "object",
+        "properties": {
+          "customerId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Customer who receives the SMS",
+            "example": 1,
+            "exclusiveMinimum": 0
+          },
+          "message": {
+            "type": "string",
+            "description": "SMS text (max 160 characters)",
+            "example": "Your order has been shipped.",
+            "maxLength": 160,
+            "minLength": 0
+          }
+        },
+        "required": [
+          "customerId",
+          "message"
+        ]
+      },
+      "SmsMessage": {
+        "type": "object",
+        "properties": {
+          "smsId": {
+            "type": "string"
+          },
+          "customerId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "to": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "sentAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "RefundRequest": {
+        "type": "object",
+        "properties": {
+          "orderId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Order to refund",
+            "example": 1002,
+            "exclusiveMinimum": 0
+          },
+          "amount": {
+            "type": "number",
+            "description": "Refund amount in BDT",
+            "example": 500.0,
+            "minimum": 0.01
+          },
+          "reason": {
+            "type": "string",
+            "description": "Why the refund is issued",
+            "example": "Item arrived damaged",
+            "maxLength": 200,
+            "minLength": 0
+          }
+        },
+        "required": [
+          "amount",
+          "orderId",
+          "reason"
+        ]
+      },
+      "Refund": {
+        "type": "object",
+        "properties": {
+          "refundId": {
+            "type": "string"
+          },
+          "orderId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "amount": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "issuedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Order": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "customerId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "total": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PROCESSING",
+              "SHIPPED",
+              "DELIVERED",
+              "CANCELLED"
+            ]
+          },
+          "placedOn": {
+            "type": "string",
+            "format": "date"
+          },
+          "deliveryPhone": {
+            "type": "string"
+          }
+        }
+      },
+      "Customer": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "nationalId": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

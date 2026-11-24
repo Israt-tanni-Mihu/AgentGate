@@ -19,6 +19,10 @@ spring:
       ddl-auto: validate   # Flyway owns the schema; Hibernate only checks it
   flyway:
     locations: classpath:db/migration
+  data:
+    web:
+      pageable:
+        max-page-size: 100   # nobody can ask for a million rows in one page
 
 server:
   port: 8080
