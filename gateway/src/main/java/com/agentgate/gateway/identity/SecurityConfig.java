@@ -25,7 +25,7 @@ import tools.jackson.databind.ObjectMapper;
  * 1. /oauth2/token, /oauth2/jwks …  Spring Authorization Server: agents trade client id + secret for a JWT.
  * 2. /api/admin/**, /actuator/metrics/**  admin only, HTTP Basic.
  * 3. /api/approvals/**, /approvals.html  approvers only, HTTP Basic (FR4).
- * 4. /api/agent/**                  agents only, "Authorization: Bearer <JWT>" (resource server).
+ * 4. /api/agent/**, /mcp               agents only, "Authorization: Bearer <JWT>" (resource server).
  * 5. everything else                health + Swagger UI open, the rest denied (default deny).
  */
 @Configuration
@@ -80,7 +80,7 @@ public class SecurityConfig {
     SecurityFilterChain agentChain(HttpSecurity http, ObjectMapper objectMapper, AgentRepository agentRepository)
             throws Exception {
         var problems = new ProblemDetailsSecurityHandler(objectMapper, new BearerTokenAuthenticationEntryPoint());
-        http.securityMatcher("/api/agent/**")
+        http.securityMatcher("/api/agent/**", "/mcp")
                 .authorizeHttpRequests(auth -> auth.anyRequest().hasRole("AGENT"))
                 .oauth2ResourceServer(rs -> rs
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(new AgentJwtAuthenticationConverter(agentRepository)))
