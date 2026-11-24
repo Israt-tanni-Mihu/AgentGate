@@ -1,0 +1,167 @@
+package com.agentgate.gateway;
+
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
+
+import com.agentgate.gateway.admin.KillSwitchRepository;
+import com.agentgate.gateway.admin.KillSwitchState;
+import com.agentgate.gateway.limits.AlertRepository;
+import com.agentgate.gateway.limits.RateCounters;
+import com.agentgate.gateway.registry.RiskLevel;
+import com.agentgate.gateway.registry.Tool;
+import com.agentgate.gateway.registry.ToolKind;
+import com.agentgate.gateway.registry.ToolRepository;
+import com.sun.net.httpserver.HttpServer;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.assertj.MockMvcTester;
+import org.springframework.test.web.servlet.assertj.MvcTestResult;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+
+/**
+ * Shared setup for integration tests that send calls through the whole pipeline to a fake ShopBD server.
+ *
+ * Shared Spring context, so the in-memory state (rate counters, kill switches) is reset before and after
+ * every test. Otherwise one test would use up the quota or switch off a tool for the next one.
+ */
+@SpringBootTest
+@AutoConfigureMockMvc
+@Import(TestcontainersConfiguration.class)
+public abstract class AgentCallIntegrationTest {
+
+    protected record ReceivedRequest(String method, String rawPath, String body) {
+    }
+
+    private static HttpServer shopServer;
+    /** Every request that really reached the fake shop. Blocked calls must not appear here. */
+    protected static final List<ReceivedRequest> received = new CopyOnWriteArrayList<>();
+
+    @Autowired protected MockMvcTester mvc;
+    @Autowired protected ObjectMapper objectMapper;
+    @Autowired protected ToolRepository toolRepository;
+    @Autowired protected AlertRepository alertRepository;
+    @Autowired protected RateCounters rateCounters;
+    @Autowired protected KillSwitchRepository killSwitchRepository;
+    @Autowired protected KillSwitchState killSwitchState;
+
+    @BeforeAll
+    static void startFakeShop() throws IOException {
+        shopServer = HttpServer.create(new InetSocketAddress("localhost", 0), 0);
+        shopServer.createContext("/", exchange -> {
+            String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+            received.add(new ReceivedRequest(exchange.getRequestMethod(), exchange.getRequestURI().getRawPath(), body));
+            boolean isWrite = exchange.getRequestMethod().equals("POST");
+            byte[] answer = (isWrite ? "{\"result\":\"created\"}" : "{\"result\":\"ok\"}").getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().add("Content-Type", "application/json");
+            exchange.sendResponseHeaders(isWrite ? 201 : 200, answer.length);
+            try (OutputStream out = exchange.getResponseBody()) {
+                out.write(answer);
+            }
+        });
+        shopServer.start();
+    }
+
+    @AfterAll
+    static void stopFakeShop() {
+        shopServer.stop(0);
+    }
+
+    @BeforeEach
+    void resetStateAndRegisterTools() {
+        received.clear();
+        rateCounters.reset();
+        alertRepository.deleteAll();
+        killSwitchRepository.deleteAll();
+        killSwitchState.reload();
+        toolRepository.deleteAll();
+        toolRepository.save(tool("getCustomer", "GET", "/api/customers/{id}", RiskLevel.LOW));
+        toolRepository.save(tool("getOrder", "GET", "/api/orders/{id}", RiskLevel.LOW));
+        toolRepository.save(tool("issueRefund", "POST", "/api/refunds", RiskLevel.HIGH));
+    }
+
+    @AfterEach
+    void leaveNoStateBehind() {
+        rateCounters.reset();
+        killSwitchRepository.deleteAll();
+        killSwitchState.reload();
+    }
+
+    // ---------- helpers for subclasses ----------
+
+    protected MvcTestResult call(String agent, String endUser, String toolName, String arguments) {
+        var request = mvc.post().uri("/api/agent/calls/{tool}", toolName)
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenFor(agent))
+                .contentType(MediaType.APPLICATION_JSON).content(arguments);
+        if (endUser != null) {
+            request = request.header("X-On-Behalf-Of", endUser);
+        }
+        return request.exchange();
+    }
+
+    protected MvcTestResult setKillSwitch(String uri, boolean engaged) {
+        return mvc.put().uri(uri).with(admin())
+                .contentType(MediaType.APPLICATION_JSON).content("{\"engaged\": " + engaged + "}")
+                .exchange();
+    }
+
+    protected JsonNode json(MvcTestResult result) {
+        try {
+            return objectMapper.readTree(result.getResponse().getContentAsString());
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    protected static RequestPostProcessor admin() {
+        return httpBasic("admin", "admin-local-only");
+    }
+
+    private String tokenFor(String agent) {
+        MvcTestResult result = mvc.post().uri("/oauth2/token")
+                .with(httpBasic(agent, agent + "-local-secret"))
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                .param("grant_type", "client_credentials")
+                .exchange();
+        return json(result).get("access_token").asString();
+    }
+
+    private static Tool tool(String name, String method, String path, RiskLevel risk) {
+        Tool tool = new Tool();
+        tool.setName(name);
+        tool.setDescription(name);
+        tool.setInputSchema(schemaFor(name));
+        tool.setRiskLevel(risk);
+        tool.setOwnerTeam("shop-team");
+        tool.setKind(ToolKind.REST);
+        tool.setHttpMethod(method);
+        tool.setBaseUrl("http://localhost:" + shopServer.getAddress().getPort());
+        tool.setPath(path);
+        return tool;
+    }
+
+    private static String schemaFor(String name) {
+        return switch (name) {
+            case "issueRefund" -> """
+                    {"type":"object","properties":{"orderId":{"type":"integer"},"amount":{"type":"number"},"reason":{"type":"string"}},"required":["orderId","amount","reason"],"additionalProperties":false}""";
+            case "getCustomer" -> """
+                    {"type":"object","properties":{"id":{"type":"integer"}},"required":["id"],"additionalProperties":false}""";
+            default -> """
+                    {"type":"object","properties":{"id":{"type":"string"}},"required":["id"],"additionalProperties":false}""";
+        };
+    }
+}

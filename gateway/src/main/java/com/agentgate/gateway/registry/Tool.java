@@ -48,6 +48,11 @@ public class Tool {
     @Column(name = "http_method", length = 10)
     private String httpMethod;
 
+    /** FR6: READ or WRITE. Set from the HTTP method unless an admin chose otherwise. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "access_mode", nullable = false, length = 10)
+    private AccessMode accessMode;
+
     @Column(name = "base_url", length = 500)
     private String baseUrl;
 
@@ -67,6 +72,9 @@ public class Tool {
     void onCreate() {
         createdAt = Instant.now();
         updatedAt = createdAt;
+        if (accessMode == null) {
+            accessMode = AccessMode.defaultFor(kind, httpMethod);
+        }
     }
 
     @PreUpdate
@@ -96,6 +104,9 @@ public class Tool {
 
     public String getHttpMethod() { return httpMethod; }
     public void setHttpMethod(String httpMethod) { this.httpMethod = httpMethod; }
+
+    public AccessMode getAccessMode() { return accessMode; }
+    public void setAccessMode(AccessMode accessMode) { this.accessMode = accessMode; }
 
     public String getBaseUrl() { return baseUrl; }
     public void setBaseUrl(String baseUrl) { this.baseUrl = baseUrl; }

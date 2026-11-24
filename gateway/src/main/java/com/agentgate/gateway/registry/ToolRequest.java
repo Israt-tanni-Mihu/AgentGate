@@ -47,7 +47,10 @@ public record ToolRequest(
         String path,
 
         @Schema(description = "Defaults to true")
-        Boolean enabled) {
+        Boolean enabled,
+
+        @Schema(description = "READ or WRITE (FR6). Omit to use the default from the HTTP method: GET = READ, others = WRITE")
+        AccessMode accessMode) {
 
     @JsonIgnore
     @Schema(hidden = true)

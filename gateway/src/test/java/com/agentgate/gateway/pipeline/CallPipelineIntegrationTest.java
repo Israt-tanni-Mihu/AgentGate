@@ -60,6 +60,7 @@ class CallPipelineIntegrationTest {
     @Autowired ToolRepository toolRepository;
     @Autowired PolicyVersionRepository policyRepository;
     @Autowired PolicyAdminService policyService;
+    @Autowired com.agentgate.gateway.limits.RateCounters rateCounters;
 
     @BeforeAll
     static void startFakeShop() throws IOException {
@@ -87,6 +88,7 @@ class CallPipelineIntegrationTest {
     @BeforeEach
     void registerShopTools() {
         received.clear();
+        rateCounters.reset();   // FR6 counters are shared by the test context; start each test with none
         toolRepository.deleteAll();
         // Schemas mirror the ShopBD OpenAPI spec. getOrder's id is a string here so the path-escaping test
         // can send a slash; with an integer id the schema guard would reject it first (see guard tests).

@@ -53,6 +53,7 @@ class PolicyPlaygroundIntegrationTest {
     @Autowired ToolRepository toolRepository;
     @Autowired PolicyVersionRepository policyRepository;
     @Autowired PolicyAdminService policyService;
+    @Autowired com.agentgate.gateway.limits.RateCounters rateCounters;
 
     @BeforeAll
     static void startFakeShop() throws IOException {
@@ -78,6 +79,7 @@ class PolicyPlaygroundIntegrationTest {
     @BeforeEach
     void registerShopTools() {
         requestsToShop.set(0);
+        rateCounters.reset();   // FR6 counters are shared by the test context; start each test with none
         toolRepository.deleteAll();
         toolRepository.save(tool("getCustomer", "GET", "/api/customers/{id}", RiskLevel.LOW, """
                 {"type":"object","properties":{"id":{"type":"integer"}},"required":["id"],"additionalProperties":false}"""));

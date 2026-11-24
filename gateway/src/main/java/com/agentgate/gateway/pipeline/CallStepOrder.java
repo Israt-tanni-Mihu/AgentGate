@@ -10,6 +10,10 @@ package com.agentgate.gateway.pipeline;
  */
 public final class CallStepOrder {
 
+    /** FR8: the very first check. A disabled agent or tool stops here, before any counter or policy runs. */
+    public static final int KILL_SWITCH = 100;
+    /** FR6: rate limits and quotas, before the schema check, so floods are counted and stopped early. */
+    public static final int LIMITS = 150;
     public static final int SCHEMA = 200;
     public static final int POLICY = 300;
     public static final int TRUNCATION = 400;

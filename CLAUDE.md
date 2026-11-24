@@ -85,7 +85,7 @@ Out of scope: building real agents (scripted MCP clients act as agents), a full 
 
 - [x] Phase 1 — Skeleton: multi-module Maven, Docker Compose (Postgres), health endpoint, mock-tools server, FR1 tool registry CRUD + OpenAPI import
 - [x] Phase 2 — FR2 agent identity (OAuth2 client credentials), FR3 policy engine (default deny, versions, hot reload, dry-run), FR9 playground
-- [ ] Phase 3 — FR5 guards (schema validation, redaction, truncation), FR6 limits, FR8 kill switch
+- [x] Phase 3 — FR5 guards (schema validation, redaction, truncation), FR6 limits, FR8 kill switch
 - [ ] Phase 4 — FR4 approval state machine + web page + webhook, FR7 hash-chained audit + verify
 - [ ] Phase 5 — MCP endpoint (Spring AI), FR10 circuit breakers/health, metrics
 - [ ] Phase 6 — QA scripts (red-team suite, k6 load, fail-safe test, audit tamper test, quick-start), Testcontainers, ArchUnit/Modulith tests, CI

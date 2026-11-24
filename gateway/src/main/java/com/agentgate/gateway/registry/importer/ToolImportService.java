@@ -1,5 +1,6 @@
 package com.agentgate.gateway.registry.importer;
 
+import com.agentgate.gateway.registry.AccessMode;
 import com.agentgate.gateway.registry.Tool;
 import com.agentgate.gateway.registry.ToolKind;
 import com.agentgate.gateway.registry.ToolRepository;
@@ -98,6 +99,10 @@ public class ToolImportService {
     }
 
     private void copyTechnicalFields(ToolDefinition definition, String baseUrl, Tool tool) {
+        // FR6: recompute READ/WRITE only when the method changes, so an admin's override survives other re-imports.
+        if (!Objects.equals(tool.getHttpMethod(), definition.httpMethod())) {
+            tool.setAccessMode(AccessMode.defaultFor(ToolKind.REST, definition.httpMethod()));
+        }
         tool.setDescription(definition.description());
         tool.setInputSchema(objectMapper.writeValueAsString(definition.inputSchema()));
         tool.setHttpMethod(definition.httpMethod());

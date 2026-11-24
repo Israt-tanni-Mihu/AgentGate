@@ -75,13 +75,17 @@ public class ToolService {
         tool.setBaseUrl(request.baseUrl());
         tool.setPath(request.path());
         tool.setEnabled(request.enabled() == null || request.enabled());
+        // FR6: an omitted accessMode is derived from the HTTP method again (an admin sets it explicitly to override).
+        tool.setAccessMode(request.accessMode() != null
+                ? request.accessMode()
+                : AccessMode.defaultFor(request.kind(), request.httpMethod()));
     }
 
     ToolResponse toResponse(Tool tool) {
         return new ToolResponse(tool.getId(), tool.getName(), tool.getDescription(),
                 readJson(tool.getInputSchema()), tool.getRiskLevel(), tool.getOwnerTeam(), tool.getKind(),
                 tool.getHttpMethod(), tool.getBaseUrl(), tool.getPath(), tool.isEnabled(),
-                tool.getCreatedAt(), tool.getUpdatedAt());
+                tool.getAccessMode(), tool.getCreatedAt(), tool.getUpdatedAt());
     }
 
     JsonNode readJson(String json) {

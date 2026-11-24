@@ -55,6 +55,13 @@ agentgate:
       HIGH: [NATIONAL_ID]
     truncation:
       max-bytes: 8192   # results bigger than 8 KB (as JSON) are cut and the agent gets a notice
+  limits:
+    # FR6. Fixed windows: a minute, a UTC day, an hour. Counts live in memory of this instance (see ADR candidate).
+    agent-per-minute: 60
+    tool-per-minute: 120
+    agent-daily-quota: 1000
+    tool-daily-quota: 5000
+    writes-per-hour-per-agent: 20   # blast-radius cap on WRITE calls
 
 ---
 # ---------- "local" profile: safe defaults that match docker-compose.yml ----------

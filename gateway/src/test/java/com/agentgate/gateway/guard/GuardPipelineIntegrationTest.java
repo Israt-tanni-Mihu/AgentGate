@@ -66,6 +66,7 @@ class GuardPipelineIntegrationTest {
     @Autowired MockMvcTester mvc;
     @Autowired ObjectMapper objectMapper;
     @Autowired ToolRepository toolRepository;
+    @Autowired com.agentgate.gateway.limits.RateCounters rateCounters;
 
     @BeforeAll
     static void startFakeShop() throws IOException {
@@ -118,6 +119,7 @@ class GuardPipelineIntegrationTest {
     @BeforeEach
     void registerShopTools() {
         received.clear();
+        rateCounters.reset();   // FR6 counters are shared by the test context; start each test with none
         toolRepository.deleteAll();
         toolRepository.save(tool("getCustomer", "GET", "/api/customers/{id}", RiskLevel.LOW, CUSTOMER_SCHEMA));
         toolRepository.save(tool("getOrder", "GET", "/api/orders/{id}", RiskLevel.LOW, ORDER_SCHEMA));

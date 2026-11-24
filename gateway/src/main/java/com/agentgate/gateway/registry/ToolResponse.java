@@ -16,6 +16,7 @@ public record ToolResponse(
         String baseUrl,
         String path,
         boolean enabled,
+        AccessMode accessMode,
         Instant createdAt,
         Instant updatedAt) {
 }
