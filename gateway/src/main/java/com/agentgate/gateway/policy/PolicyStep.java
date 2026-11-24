@@ -4,6 +4,7 @@ import com.agentgate.gateway.pipeline.CallChain;
 import com.agentgate.gateway.pipeline.CallOutcome;
 import com.agentgate.gateway.pipeline.CallStep;
 import com.agentgate.gateway.pipeline.CallStepOrder;
+import com.agentgate.gateway.pipeline.CallTrace;
 import com.agentgate.gateway.pipeline.ToolCall;
 import java.util.Map;
 import org.slf4j.Logger;
@@ -30,6 +31,7 @@ public class PolicyStep implements CallStep {
     public CallOutcome handle(ToolCall call, CallChain chain) {
         PolicySnapshot policy = cache.current();
         PolicyDecision decision = engine.evaluate(policy, PolicyInput.from(call));
+        CallTrace.recordPolicy(decision.ruleId() + (decision.allowed() || !policy.dryRun() ? "" : " (dry-run)"), decision.policyVersion());
 
         if (decision.allowed()) {
             log.debug("ALLOW agent={} tool={} rule={} policyVersion={}",

@@ -56,10 +56,21 @@ public class RedactionStep implements CallStep {
         return new CallOutcome.Completed(completed.status(), redact(completed.body(), active));
     }
 
+    /**
+     * For the audit log (FR7): masks EVERY data type, whatever the clearance. The log is read by auditors,
+     * so it never keeps e-mails, phone numbers or national ids in clear text.
+     */
+    public JsonNode redactEverything(JsonNode node) {
+        return redact(node, redactorsFor(EnumSet.allOf(SensitiveDataType.class)));
+    }
+
     /** Redactors for this clearance, in the enum order. A clearance without a rule sees nothing (fail closed). */
     private List<DataRedactor> activeRedactors(Clearance clearance) {
-        Set<SensitiveDataType> hidden = properties.redactionByClearance()
-                .getOrDefault(clearance, EnumSet.allOf(SensitiveDataType.class));
+        return redactorsFor(properties.redactionByClearance()
+                .getOrDefault(clearance, EnumSet.allOf(SensitiveDataType.class)));
+    }
+
+    private List<DataRedactor> redactorsFor(Set<SensitiveDataType> hidden) {
         List<DataRedactor> active = new ArrayList<>();
         for (SensitiveDataType type : SensitiveDataType.values()) {
             if (hidden.contains(type) && redactors.containsKey(type)) {

@@ -6,6 +6,7 @@ import com.agentgate.gateway.pipeline.CallChain;
 import com.agentgate.gateway.pipeline.CallOutcome;
 import com.agentgate.gateway.pipeline.CallStep;
 import com.agentgate.gateway.pipeline.CallStepOrder;
+import com.agentgate.gateway.pipeline.CallTrace;
 import com.agentgate.gateway.pipeline.ToolCall;
 import com.agentgate.gateway.policy.PolicyStep;
 import com.agentgate.gateway.registry.RiskLevel;
@@ -95,6 +96,8 @@ public class ApprovalStep implements CallStep {
     }
 
     private CallOutcome continueAfter(ApprovalDecided decision, ToolCall call, CallChain chain) {
+        CallTrace.recordApproval(decision.approvalId(), decision.state().name(), decision.approver(),
+                decision.editedArguments());
         return switch (decision.state()) {
             case APPROVED -> chain.proceed(call);
             case APPROVED_WITH_EDITS -> proceedWithEdits(decision, call, chain);

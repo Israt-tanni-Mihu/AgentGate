@@ -7,6 +7,8 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
+import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -23,6 +25,8 @@ import tools.jackson.databind.node.ObjectNode;
 @Tag(name = "Tool calls (agent)")
 @SecurityRequirement(name = "agentToken")
 public class CallController {
+
+    public static final String CALL_ID_HEADER = "X-Call-Id";
 
     private final CallPipeline pipeline;
     private final ObjectMapper objectMapper;
@@ -41,8 +45,13 @@ public class CallController {
             example = "1")
     public ResponseEntity<JsonNode> call(@PathVariable String toolName,
                                          @RequestBody(required = false) JsonNode arguments,
-                                         @Parameter(hidden = true) CallContext callContext) {
-        CallOutcome outcome = pipeline.execute(toolName, asObject(arguments), callContext);
+                                         @Parameter(hidden = true) CallContext callContext,
+                                         @Parameter(hidden = true) HttpServletResponse response) {
+        ObjectNode argumentObject = asObject(arguments);
+        // FR7: the agent gets the id of this call in the header, also when the call fails, so it can be looked up later.
+        UUID callId = UUID.randomUUID();
+        response.setHeader(CALL_ID_HEADER, callId.toString());
+        CallOutcome outcome = pipeline.execute(callId, toolName, argumentObject, callContext);
         return switch (outcome) {
             case CallOutcome.Completed completed -> ResponseEntity.status(completed.status()).body(completed.body());
             case CallOutcome.Denied denied -> throw new CallDeniedException(toolName, denied);
