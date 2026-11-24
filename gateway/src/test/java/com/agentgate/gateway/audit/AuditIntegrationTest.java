@@ -181,8 +181,10 @@ class AuditIntegrationTest extends AgentCallIntegrationTest {
 
     @Test
     void thereIsNoEndpointToChangeOrDeleteRecordsAndVerifyNeedsAdmin() {
-        assertThat(mvc.delete().uri("/api/admin/audit/1").with(admin())).hasStatus(404);   // no such endpoint
-        assertThat(mvc.put().uri("/api/admin/audit/1").with(admin())).hasStatus(404);
+        // /api/admin/audit/{callId} exists for GET only, so any other method is refused
+        assertThat(mvc.delete().uri("/api/admin/audit/1").with(admin())).hasStatus(405);
+        assertThat(mvc.put().uri("/api/admin/audit/1").with(admin())).hasStatus(405);
+        assertThat(mvc.delete().uri("/api/admin/audit").with(admin())).hasStatus(405);
         assertThat(mvc.put().uri("/api/admin/audit/verify").with(admin())).hasStatus(405);
         assertThat(mvc.get().uri("/api/admin/audit/verify")).hasStatus(401);
     }
