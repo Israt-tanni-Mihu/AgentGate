@@ -85,7 +85,14 @@ public abstract class AgentCallIntegrationTest {
                 return;
             }
             boolean isWrite = exchange.getRequestMethod().equals("POST");
-            byte[] answer = (isWrite ? "{\"result\":\"created\"}" : "{\"result\":\"ok\"}").getBytes(StandardCharsets.UTF_8);
+            // Like the real ShopBD answers: an order names its customer, a customer profile has its own id.
+            // (The ownership guard checks these fields when a call acts for an end user.)
+            String path = exchange.getRequestURI().getRawPath();
+            String answerText = isWrite ? "{\"result\":\"created\"}"
+                    : path.startsWith("/api/customers/")
+                    ? "{\"result\":\"ok\",\"id\":" + path.substring("/api/customers/".length()) + "}"
+                    : path.startsWith("/api/orders/") ? "{\"result\":\"ok\",\"customerId\":1}" : "{\"result\":\"ok\"}";
+            byte[] answer = answerText.getBytes(StandardCharsets.UTF_8);
             exchange.getResponseHeaders().add("Content-Type", "application/json");
             exchange.sendResponseHeaders(isWrite ? 201 : 200, answer.length);
             try (OutputStream out = exchange.getResponseBody()) {

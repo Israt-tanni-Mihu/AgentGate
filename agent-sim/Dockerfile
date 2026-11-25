@@ -15,4 +15,6 @@ RUN addgroup -S app && adduser -S app -G app
 USER app
 WORKDIR /app
 COPY --from=build /app.jar app.jar
+# Case files of the QA1 red-team suite (cases are data: qa/redteam/*.json)
+COPY --from=build /src/qa /app/qa
 ENTRYPOINT ["java", "-jar", "app.jar"]

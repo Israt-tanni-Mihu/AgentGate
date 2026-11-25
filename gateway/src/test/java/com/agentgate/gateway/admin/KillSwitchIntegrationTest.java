@@ -18,11 +18,11 @@ class KillSwitchIntegrationTest extends AgentCallIntegrationTest {
 
     @Test
     void aKilledToolIsBlockedAtOnceAndWorksAgainWhenReleased() {
-        assertThat(call("support-bot", null, "getOrder", "{\"id\": \"1001\"}")).hasStatusOk();
+        assertThat(call("support-bot", "1", "getOrder", "{\"id\": \"1001\"}")).hasStatusOk();
 
         assertThat(setKillSwitch("/api/admin/kill-switch/tools/getOrder", true)).hasStatusOk()
                 .bodyJson().hasPathSatisfying("$.engaged", v -> v.assertThat().isEqualTo(true));
-        assertThat(call("support-bot", null, "getOrder", "{\"id\": \"1001\"}")).hasStatus(403).bodyJson()
+        assertThat(call("support-bot", "1", "getOrder", "{\"id\": \"1001\"}")).hasStatus(403).bodyJson()
                 .hasPathSatisfying("$.rule", v -> v.assertThat().isEqualTo("kill-switch-tool"));
         assertThat(received).hasSize(1);   // only the call before the switch reached the shop
 
@@ -31,14 +31,14 @@ class KillSwitchIntegrationTest extends AgentCallIntegrationTest {
                 .hasPathSatisfying("$.content[0].engaged", v -> v.assertThat().isEqualTo(true));
 
         assertThat(setKillSwitch("/api/admin/kill-switch/tools/getOrder", false)).hasStatusOk();
-        assertThat(call("support-bot", null, "getOrder", "{\"id\": \"1001\"}")).hasStatusOk();
+        assertThat(call("support-bot", "1", "getOrder", "{\"id\": \"1001\"}")).hasStatusOk();
     }
 
     @Test
     void aKilledAgentIsBlockedButOtherAgentsAreNot() {
         assertThat(setKillSwitch("/api/admin/kill-switch/agents/support-bot", true)).hasStatusOk();
 
-        assertThat(call("support-bot", null, "getOrder", "{\"id\": \"1001\"}")).hasStatus(403).bodyJson()
+        assertThat(call("support-bot", "1", "getOrder", "{\"id\": \"1001\"}")).hasStatus(403).bodyJson()
                 .hasPathSatisfying("$.rule", v -> v.assertThat().isEqualTo("kill-switch-agent"));
         assertThat(call("analytics-bot", null, "getOrder", "{\"id\": \"1001\"}")).hasStatusOk();
     }
@@ -49,7 +49,7 @@ class KillSwitchIntegrationTest extends AgentCallIntegrationTest {
 
         assertThat(call("support-bot", "1", "issueRefund", REFUND)).hasStatus(403).bodyJson()
                 .hasPathSatisfying("$.rule", v -> v.assertThat().isEqualTo("kill-switch-all-writes"));
-        assertThat(call("support-bot", null, "getOrder", "{\"id\": \"1001\"}")).hasStatusOk();
+        assertThat(call("support-bot", "1", "getOrder", "{\"id\": \"1001\"}")).hasStatusOk();
         assertThat(received).singleElement().satisfies(r -> assertThat(r.rawPath()).isEqualTo("/api/orders/1001"));
 
         assertThat(setKillSwitch("/api/admin/kill-switch/all-writes", false)).hasStatusOk();

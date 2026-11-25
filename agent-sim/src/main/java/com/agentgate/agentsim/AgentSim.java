@@ -43,6 +43,10 @@ public class AgentSim {
     private volatile String endUser;
 
     public static void main(String[] args) throws Exception {
+        if (args.length > 0 && "qa1".equals(args[0])) {
+            // QA1 red-team suite (see qa/redteam). Exit code 1 = QA1 failed.
+            System.exit(com.agentgate.agentsim.qa1.Qa1Runner.runFromAgentSim());
+        }
         new AgentSim().run();
     }
 

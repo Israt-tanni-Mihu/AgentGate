@@ -63,7 +63,7 @@ e.g. `X-On-Behalf-Of: 1` = customer 1 (Rahim Uddin).
 | Rule id | Effect | Agent | Tools | Condition |
 |---|---|---|---|---|
 | `support-own-customer-only` | ALLOW | support-bot | getCustomer | `id` matchesEndUser |
-| `support-read-orders` | ALLOW | support-bot | getOrder | – |
+| `support-read-orders` | ALLOW | support-bot | getOrder | `id` hasEndUser (the call must name a customer) |
 | `support-refund-up-to-2000` | ALLOW | support-bot | issueRefund | `amount` ≤ 2000 |
 | `analytics-read-only` | ALLOW | analytics-bot | getOrder, getCustomer | – |
 | *(none)* | – | – | sendSms | falls to **default-deny** |
@@ -72,7 +72,7 @@ e.g. `X-On-Behalf-Of: 1` = customer 1 (Rahim Uddin).
 because `getOrder` takes only an order id. The **ownership check** (FR5, `guard.OwnershipCheckStep`) checks the **result**:
 when a call has an end user (`X-On-Behalf-Of`) and the order's `customerId` is not that end user, the result is
 replaced by a `403` (`rule: ownership-check`, "cross-customer read blocked"), so the data never reaches the agent.
-The policy rule `support-read-orders` still allows any order id; the ownership check runs after the tool answered.
+The policy rule `support-read-orders` allows any order id, but only while the call names an end user (`hasEndUser`): an agent that drops the header is denied (QA1, MAL-15). The ownership check runs after the tool answered and covers `getCustomer` too (QA1, MAL-14).
 The downstream tool was already called, so the audit trail (FR7) will record that attempt.
 
 ## Policy playground (FR9)

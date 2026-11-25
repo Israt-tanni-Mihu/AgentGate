@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.agentgate.gateway.policy.PolicyRule.Effect;
 import com.agentgate.gateway.policy.operator.EqualsOperator;
 import com.agentgate.gateway.policy.operator.GreaterThanOrEqualOperator;
+import com.agentgate.gateway.policy.operator.HasEndUserOperator;
 import com.agentgate.gateway.policy.operator.InOperator;
 import com.agentgate.gateway.policy.operator.LessThanOrEqualOperator;
 import com.agentgate.gateway.policy.operator.MatchesEndUserOperator;
@@ -23,7 +24,7 @@ class PolicyEngineTest {
 
     PolicyEngine engine = new PolicyEngine(List.of(new EqualsOperator(), new NotEqualsOperator(),
             new LessThanOrEqualOperator(), new GreaterThanOrEqualOperator(), new InOperator(),
-            new MatchesEndUserOperator()));
+            new MatchesEndUserOperator(), new HasEndUserOperator()));
 
     static final PolicyRule REFUND_UP_TO_2000 = new PolicyRule("refund-max", null, Effect.ALLOW,
             List.of("support-bot"), List.of("issueRefund"),
@@ -78,6 +79,18 @@ class PolicyEngineTest {
         assertThat(decide(List.of(OWN_CUSTOMER), "support-bot", "1", "getCustomer", "{\"id\": 1}").allowed()).isTrue();
         assertThat(decide(List.of(OWN_CUSTOMER), "support-bot", "1", "getCustomer", "{\"id\": 2}").allowed()).isFalse();
         assertThat(decide(List.of(OWN_CUSTOMER), "support-bot", null, "getCustomer", "{\"id\": 1}").allowed()).isFalse();
+    }
+
+    /** QA1 finding: an agent that drops the X-On-Behalf-Of header must not get customer data from a customer-facing rule. */
+    @Test
+    void hasEndUserRequiresTheCallToNameAnEndUser() {
+        PolicyRule readOrders = new PolicyRule("read-orders", null, Effect.ALLOW, List.of("support-bot"),
+                List.of("getOrder"), List.of(new Condition("id", "hasEndUser", null)));
+
+        assertThat(decide(List.of(readOrders), "support-bot", "1", "getOrder", "{\"id\": 1003}").allowed()).isTrue();
+        PolicyDecision withoutUser = decide(List.of(readOrders), "support-bot", null, "getOrder", "{\"id\": 1003}");
+        assertThat(withoutUser.allowed()).isFalse();
+        assertThat(withoutUser.ruleId()).isEqualTo(PolicyDecision.DEFAULT_DENY);
     }
 
     @Test

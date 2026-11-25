@@ -70,7 +70,13 @@ class CallPipelineIntegrationTest {
             received.add(new ReceivedRequest(exchange.getRequestMethod(), exchange.getRequestURI().getRawPath(),
                     exchange.getRequestURI().getRawQuery(), body));
             boolean isWrite = exchange.getRequestMethod().equals("POST");
-            byte[] answer = (isWrite ? "{\"result\":\"created\"}" : "{\"result\":\"ok\"}").getBytes(StandardCharsets.UTF_8);
+            // Like the real ShopBD answers: an order names its customer, a customer profile has its own id.
+            String path = exchange.getRequestURI().getRawPath();
+            String answerText = isWrite ? "{\"result\":\"created\"}"
+                    : path.startsWith("/api/customers/")
+                    ? "{\"result\":\"ok\",\"id\":" + path.substring("/api/customers/".length()) + "}"
+                    : path.startsWith("/api/orders/") ? "{\"result\":\"ok\",\"customerId\":1}" : "{\"result\":\"ok\"}";
+            byte[] answer = answerText.getBytes(StandardCharsets.UTF_8);
             exchange.getResponseHeaders().add("Content-Type", "application/json");
             exchange.sendResponseHeaders(isWrite ? 201 : 200, answer.length);
             try (OutputStream out = exchange.getResponseBody()) {
@@ -113,7 +119,7 @@ class CallPipelineIntegrationTest {
 
     @Test
     void allowedReadIsForwardedWithPathVariable() {
-        MvcTestResult result = call("support-bot", null, "getOrder", "{\"id\": \"1001\"}");
+        MvcTestResult result = call("support-bot", "1", "getOrder", "{\"id\": \"1001\"}");
 
         assertThat(result).hasStatusOk().bodyJson()
                 .hasPathSatisfying("$.result", v -> v.assertThat().isEqualTo("ok"));
@@ -175,7 +181,7 @@ class CallPipelineIntegrationTest {
 
     @Test
     void pathSmugglingIsEscaped() {
-        assertThat(call("support-bot", null, "getOrder", "{\"id\": \"1/../../admin\"}")).hasStatusOk();
+        assertThat(call("support-bot", "1", "getOrder", "{\"id\": \"1/../../admin\"}")).hasStatusOk();
 
         assertThat(received).singleElement().satisfies(r -> assertThat(r.rawPath()).isEqualTo("/api/orders/1%2F..%2F..%2Fadmin"));
     }
@@ -189,7 +195,7 @@ class CallPipelineIntegrationTest {
         Tool getOrder = toolRepository.findByName("getOrder").orElseThrow();
         getOrder.setEnabled(false);
         toolRepository.save(getOrder);
-        assertThat(call("support-bot", null, "getOrder", "{\"id\": 1001}"))
+        assertThat(call("support-bot", "1", "getOrder", "{\"id\": 1001}"))
                 .hasStatus(403).bodyJson()
                 .hasPathSatisfying("$.title", v -> v.assertThat().isEqualTo("Tool disabled"));
         assertThat(received).isEmpty();

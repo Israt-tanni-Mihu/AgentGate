@@ -1,5 +1,6 @@
 # Whole system with one command:   docker compose up --build
 # Needs a .env file first (cp .env.example .env). Demo agent:   docker compose --profile demo run --rm agent-sim
+# QA1 red-team suite:   docker compose --profile demo run --rm agent-sim qa1
 services:
   postgres:
     image: postgres:16-alpine
@@ -76,6 +77,12 @@ services:
       AGENT_SECRET: ${SUPPORT_BOT_SECRET:?copy .env.example to .env first}
       APPROVER_USERNAME: ${APPROVER_USERNAME:?copy .env.example to .env first}
       APPROVER_PASSWORD: ${APPROVER_PASSWORD:?copy .env.example to .env first}
+      # Only used by "agent-sim qa1" (QA1 red-team suite): it registers its own QA agents and plays the admin.
+      ADMIN_USERNAME: ${ADMIN_USERNAME:?copy .env.example to .env first}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?copy .env.example to .env first}
+      SUPPORT_BOT_SECRET: ${SUPPORT_BOT_SECRET:?copy .env.example to .env first}
+      ANALYTICS_BOT_SECRET: ${ANALYTICS_BOT_SECRET:?copy .env.example to .env first}
+      QA_CASES_DIR: /app/qa/redteam
     depends_on:
       gateway:
         condition: service_healthy

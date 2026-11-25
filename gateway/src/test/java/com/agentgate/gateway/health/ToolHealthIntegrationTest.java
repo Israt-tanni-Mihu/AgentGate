@@ -28,7 +28,7 @@ class ToolHealthIntegrationTest extends AgentCallIntegrationTest {
         shopDelayMs = 2000;
         setToolTimeout("getOrder", 300);
 
-        assertThat(call("support-bot", null, "getOrder", ORDER)).hasStatus(504).bodyJson()
+        assertThat(call("support-bot", "1", "getOrder", ORDER)).hasStatus(504).bodyJson()
                 .hasPathSatisfying("$.rule", v -> v.assertThat().isEqualTo("tool-timeout"))
                 .hasPathSatisfying("$.title", v -> v.assertThat().isEqualTo("Tool timed out"));
     }
@@ -36,10 +36,10 @@ class ToolHealthIntegrationTest extends AgentCallIntegrationTest {
     @Test
     void aToolsOwnTimeoutBeatsTheDefault() {
         shopDelayMs = 800;   // fine for the 3 s default ...
-        assertThat(call("support-bot", null, "getOrder", ORDER)).hasStatusOk();
+        assertThat(call("support-bot", "1", "getOrder", ORDER)).hasStatusOk();
 
         setToolTimeout("getOrder", 300);   // ... but too slow once the admin sets 300 ms (no restart)
-        assertThat(call("support-bot", null, "getOrder", ORDER)).hasStatus(504);
+        assertThat(call("support-bot", "1", "getOrder", ORDER)).hasStatus(504);
     }
 
     @Test
@@ -48,12 +48,12 @@ class ToolHealthIntegrationTest extends AgentCallIntegrationTest {
         assertThat(toolNamesFor("support-bot")).contains("getOrder");
 
         for (int i = 0; i < 5; i++) {
-            assertThat(call("support-bot", null, "getOrder", ORDER)).hasStatus(502);
+            assertThat(call("support-bot", "1", "getOrder", ORDER)).hasStatus(502);
         }
         assertThat(received).hasSize(5);
 
         // OPEN: refused at once with 503, the fake shop is not called any more
-        assertThat(call("support-bot", null, "getOrder", ORDER)).hasStatus(503).bodyJson()
+        assertThat(call("support-bot", "1", "getOrder", ORDER)).hasStatus(503).bodyJson()
                 .hasPathSatisfying("$.rule", v -> v.assertThat().isEqualTo("circuit-open"));
         assertThat(received).hasSize(5);
 
@@ -68,7 +68,7 @@ class ToolHealthIntegrationTest extends AgentCallIntegrationTest {
     void afterTheWaitTheToolIsHalfOpenVisibleAgainAndTrialCallsCloseTheBreaker() {
         shopFailStatus = 500;
         for (int i = 0; i < 5; i++) {
-            call("support-bot", null, "getOrder", ORDER);
+            call("support-bot", "1", "getOrder", ORDER);
         }
         assertThat(toolBreakers.isOpen("getOrder")).isTrue();
 
@@ -79,7 +79,7 @@ class ToolHealthIntegrationTest extends AgentCallIntegrationTest {
 
         shopFailStatus = 0;   // the tool recovered
         for (int i = 0; i < 3; i++) {
-            assertThat(call("support-bot", null, "getOrder", ORDER)).hasStatusOk();
+            assertThat(call("support-bot", "1", "getOrder", ORDER)).hasStatusOk();
         }
         assertThat(toolBreakers.breakerFor("getOrder").getState()).isEqualTo(CircuitBreaker.State.CLOSED);
         assertThat(toolNamesFor("support-bot")).contains("getOrder");
@@ -89,13 +89,13 @@ class ToolHealthIntegrationTest extends AgentCallIntegrationTest {
     void aFailingTrialCallOpensTheBreakerAgain() {
         shopFailStatus = 500;
         for (int i = 0; i < 5; i++) {
-            call("support-bot", null, "getOrder", ORDER);
+            call("support-bot", "1", "getOrder", ORDER);
         }
         await().atMost(Duration.ofSeconds(5)).untilAsserted(() ->
                 assertThat(toolBreakers.breakerFor("getOrder").getState()).isEqualTo(CircuitBreaker.State.HALF_OPEN));
 
         for (int i = 0; i < 3; i++) {
-            call("support-bot", null, "getOrder", ORDER);   // the tool is still broken
+            call("support-bot", "1", "getOrder", ORDER);   // the tool is still broken
         }
         assertThat(toolBreakers.breakerFor("getOrder").getState()).isEqualTo(CircuitBreaker.State.OPEN);
         assertThat(toolNamesFor("support-bot")).doesNotContain("getOrder");
@@ -124,7 +124,7 @@ class ToolHealthIntegrationTest extends AgentCallIntegrationTest {
     void clientMistakesAndNotFoundAnswersDoNotOpenTheBreaker() {
         shopFailStatus = 404;   // an ordinary answer ("no such order"), not a broken tool
         for (int i = 0; i < 8; i++) {
-            assertThat(call("support-bot", null, "getOrder", ORDER)).hasStatus(404);
+            assertThat(call("support-bot", "1", "getOrder", ORDER)).hasStatus(404);
         }
         assertThat(toolBreakers.isOpen("getOrder")).isFalse();
     }

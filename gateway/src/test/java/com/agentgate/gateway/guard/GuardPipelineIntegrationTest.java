@@ -171,6 +171,26 @@ class GuardPipelineIntegrationTest {
         assertThat(received).containsExactly("GET /api/orders/2001");
     }
 
+    /** QA1 finding: dropping X-On-Behalf-Of must not skip the ownership check, so the policy needs an end user. */
+    @Test
+    void supportBotCannotReadOrdersWithoutNamingACustomer() {
+        MvcTestResult result = call("support-bot", null, "getOrder", "{\"id\": 2001}");
+
+        assertThat(result).hasStatus(403).bodyJson()
+                .hasPathSatisfying("$.rule", v -> v.assertThat().isEqualTo("default-deny"));
+        assertThat(received).isEmpty();
+    }
+
+    /** QA1 finding: a broad read rule (analytics-bot) must not let it read another customer's profile for a customer. */
+    @Test
+    void agentWithBroadReadRuleCannotReadAnotherCustomersProfileWhileActingForOne() {
+        MvcTestResult result = call("analytics-bot", "2", "getCustomer", "{\"id\": 1}");
+
+        assertThat(result).hasStatus(403).bodyJson()
+                .hasPathSatisfying("$.rule", v -> v.assertThat().isEqualTo("ownership-check"));
+        assertThat(json(result).toString()).doesNotContain("Rahim");
+    }
+
     @Test
     void ownOrderIsAllowed() {
         assertThat(call("support-bot", "1", "getOrder", "{\"id\": 1001}")).hasStatusOk().bodyJson()
@@ -204,7 +224,7 @@ class GuardPipelineIntegrationTest {
 
     @Test
     void largeResultIsTruncatedWithANotice() throws Exception {
-        MvcTestResult result = call("support-bot", null, "getOrder", "{\"id\": 9999}");
+        MvcTestResult result = call("support-bot", "1", "getOrder", "{\"id\": 9999}");
 
         assertThat(result).hasStatusOk();
         JsonNode body = json(result);

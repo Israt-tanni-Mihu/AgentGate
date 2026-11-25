@@ -50,7 +50,7 @@ class LimitsIntegrationTest extends AgentCallIntegrationTest {
                         v -> v.assertThat().asString().contains("write-blast-radius-per-hour"));
 
         // READ calls are not counted in the write cap, so reads still work after the cap is reached.
-        assertThat(call("support-bot", null, "getOrder", "{\"id\": \"1001\"}")).hasStatusOk();
+        assertThat(call("support-bot", "1", "getOrder", "{\"id\": \"1001\"}")).hasStatusOk();
     }
 
     @Test

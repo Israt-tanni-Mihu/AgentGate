@@ -60,7 +60,7 @@ class AuditIntegrationTest extends AgentCallIntegrationTest {
         MvcTestResult policyDenied = call("support-bot", "1", "getCustomer", "{\"id\": 2}");       // other customer
         MvcTestResult schemaInvalid = call("support-bot", "1", "getCustomer", "{\"id\": \"x\"}");
         setKillSwitch("/api/admin/kill-switch/tools/getOrder", true);
-        MvcTestResult killed = call("support-bot", null, "getOrder", "{\"id\": \"1001\"}");
+        MvcTestResult killed = call("support-bot", "1", "getOrder", "{\"id\": \"1001\"}");
         MvcTestResult unknownTool = call("support-bot", null, "noSuchTool", "{}");
 
         assertThat(policyDenied).hasStatus(403);

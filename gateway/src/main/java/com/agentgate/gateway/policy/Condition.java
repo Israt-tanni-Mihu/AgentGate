@@ -8,7 +8,7 @@ import tools.jackson.databind.JsonNode;
 public record Condition(
         @Schema(example = "amount") @NotBlank String argument,
         @Schema(example = "lessThanOrEqual",
-                description = "equals, notEquals, lessThanOrEqual, greaterThanOrEqual, in, matchesEndUser")
+                description = "equals, notEquals, lessThanOrEqual, greaterThanOrEqual, in, matchesEndUser, hasEndUser")
         @NotBlank String operator,
         @Schema(example = "2000") JsonNode value) {
 }

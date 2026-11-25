@@ -1,7 +1,9 @@
 package com.agentgate.gateway.guard.redaction;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 
+import java.time.Duration;
 import org.junit.jupiter.api.Test;
 
 /** The masks themselves, without Spring: fast and easy to read. */
@@ -40,5 +42,19 @@ class RedactorsTest {
     void nineOrTwelveDigitsAreNotNationalIds() {
         assertThat(nationalId.redact("123456789")).isEqualTo("123456789");
         assertThat(nationalId.redact("123456789012")).isEqualTo("123456789012");
+    }
+
+    /** QA1 finding: a 100 000 character string used to keep the regex busy for minutes (and froze the audit writer). */
+    @Test
+    void veryLongStringsAreRedactedInLinearTime() {
+        String longLetters = "A".repeat(200_000);
+        String longMixed = "a.".repeat(100_000) + "@" + "b".repeat(100_000);
+        assertTimeoutPreemptively(Duration.ofSeconds(2), () -> {
+            assertThat(email.redact(longLetters)).isEqualTo(longLetters);
+            assertThat(email.redact(longMixed)).isEqualTo(longMixed);
+            assertThat(phone.redact(longLetters)).isEqualTo(longLetters);
+            assertThat(nationalId.redact("1".repeat(200_000))).isNotEmpty();
+        });
+        assertThat(email.redact("A".repeat(5000) + " mail rahim@example.com")).endsWith("mail r***@example.com");
     }
 }

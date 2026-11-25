@@ -89,7 +89,7 @@ class McpEndpointIntegrationTest extends AgentCallIntegrationTest {
     void aToolWithAnOpenBreakerIsNotListed() {
         shopFailStatus = 503;
         for (int i = 0; i < 5; i++) {
-            call("support-bot", null, "getOrder", "{\"id\": \"1001\"}");
+            call("support-bot", "1", "getOrder", "{\"id\": \"1001\"}");
         }
         assertThat(toolBreakers.isOpen("getOrder")).isTrue();
 

@@ -7,7 +7,13 @@ import org.springframework.stereotype.Component;
 @Component
 public class EmailRedactor implements DataRedactor {
 
-    private static final Pattern EMAIL = Pattern.compile("[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}");
+    /**
+     * QA1 finding: the plain "[...]+@..." pattern re-scanned the whole run of letters from every start position, so a
+     * 100 000 character string took minutes and froze the audit writer thread (and a core). The lookbehind lets a
+     * match start only at the beginning of a run, so each character is scanned once; domain labels are bounded.
+     */
+    private static final Pattern EMAIL = Pattern.compile(
+            "(?<![A-Za-z0-9._%+-])[A-Za-z0-9._%+-]+@[A-Za-z0-9-]{1,63}(?:\\.[A-Za-z0-9-]{1,63})*\\.[A-Za-z]{2,24}");
 
     @Override
     public SensitiveDataType type() {
