@@ -10,6 +10,7 @@ checked against policy, guarded, held for human approval if high-risk, forwarded
 |---|---|---|
 | `gateway/` | The AgentGate Spring Boot app | 8080 |
 | `mock-tools/` | Fake "ShopBD" REST tool server used for demos and tests | 8081 |
+| `agent-sim/` | Scripted demo agent (MCP client) | – |
 | `docs/` | ADRs, diagrams, patterns table, AI-usage log | – |
 
 ## Requirements
@@ -18,7 +19,34 @@ checked against policy, guarded, held for human approval if high-risk, forwarded
 - Docker Desktop (for PostgreSQL and for the tests)
 - No Maven install needed: use the wrapper (`mvnw` / `mvnw.cmd`)
 
-## Quick start
+## Quick start (one command)
+
+Prerequisite: Docker Desktop (Compose v2). No JDK needed, the images build the code themselves.
+
+```bash
+cp .env.example .env              # Windows cmd: copy .env.example .env  (.env is git-ignored; edit the passwords if you like)
+docker compose up --build         # postgres + mock-tools + gateway; the first build takes a few minutes
+```
+
+Demo data (ShopBD tools, 2 agents, policy version 1) is created automatically on the first start.
+Wait until `docker compose ps` shows all three as `healthy`, then open http://localhost:8080/swagger-ui.html.
+
+Run the demo agent (one-shot, not started by `up`):
+
+```bash
+docker compose --profile demo run --rm agent-sim
+```
+
+Check the audit chain (Windows PowerShell; use the `ADMIN_*` values from your `.env`):
+
+```powershell
+$env:ADMIN_USERNAME="admin"; $env:ADMIN_PASSWORD="<ADMIN_PASSWORD from .env>"; .\scripts\audit-verify.ps1
+```
+
+Stop: `docker compose down` (keeps data) or `docker compose down -v` (also deletes the database, so demo data is re-seeded next time).
+
+## Development quick start (without containers for the apps)
+
 
 ```bash
 # 1. Start PostgreSQL 16

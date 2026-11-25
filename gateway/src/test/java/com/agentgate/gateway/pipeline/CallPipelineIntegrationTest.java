@@ -271,7 +271,7 @@ class CallPipelineIntegrationTest {
                 .hasPath("$.page.totalElements")
                 .hasPathSatisfying("$.content[0].version", v -> v.assertThat().isEqualTo(1))
                 .hasPathSatisfying("$.content[0].status", v -> v.assertThat().isEqualTo("ACTIVE"))
-                .hasPathSatisfying("$.content[0].rules.length()", v -> v.assertThat().isEqualTo(4));
+                .hasPathSatisfying("$.content[0].rules.length()", v -> v.assertThat().isEqualTo(5));
         assertThat(mvc.get().uri("/api/admin/policies/999").with(admin())).hasStatus(404);
         assertThat(mvc.get().uri("/api/admin/policies")).hasStatus(401);
     }

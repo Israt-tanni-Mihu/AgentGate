@@ -1,23 +1,84 @@
-# Local infrastructure for AgentGate. Start with:  docker compose up -d
+# Whole system with one command:   docker compose up --build
+# Needs a .env file first (cp .env.example .env). Demo agent:   docker compose --profile demo run --rm agent-sim
 services:
   postgres:
     image: postgres:16-alpine
     container_name: agentgate-postgres
     environment:
-      # Local-only defaults. Override by setting these env vars before "docker compose up".
       POSTGRES_DB: ${DB_NAME:-agentgate}
       POSTGRES_USER: ${DB_USERNAME:-agentgate}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-agentgate}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?copy .env.example to .env first}
     ports:
       - "5432:5432"
     volumes:
-      - postgres-data:/var/lib/postgresql/data   # data survives "docker compose down"
+      - postgres-data:/var/lib/postgresql/data   # data survives "docker compose down"; "down -v" deletes it
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 3s
       retries: 10
     restart: unless-stopped
+
+  mock-tools:
+    build:
+      context: .
+      dockerfile: mock-tools/Dockerfile
+    container_name: agentgate-mock-tools
+    ports:
+      - "8081:8081"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8081/actuator/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 20s
+
+  gateway:
+    build:
+      context: .
+      dockerfile: gateway/Dockerfile
+    container_name: agentgate-gateway
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      DB_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-agentgate}
+      DB_USERNAME: ${DB_USERNAME:-agentgate}
+      DB_PASSWORD: ${DB_PASSWORD:?copy .env.example to .env first}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:?copy .env.example to .env first}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?copy .env.example to .env first}
+      APPROVER_USERNAME: ${APPROVER_USERNAME:?copy .env.example to .env first}
+      APPROVER_PASSWORD: ${APPROVER_PASSWORD:?copy .env.example to .env first}
+      SUPPORT_BOT_SECRET: ${SUPPORT_BOT_SECRET:?copy .env.example to .env first}
+      ANALYTICS_BOT_SECRET: ${ANALYTICS_BOT_SECRET:?copy .env.example to .env first}
+      MOCK_TOOLS_URL: http://mock-tools:8081
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mock-tools:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8080/actuator/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 40s
+
+  # One-shot demo: not started by "docker compose up". Run it with --profile demo (see top of file).
+  agent-sim:
+    profiles: ["demo"]
+    build:
+      context: .
+      dockerfile: agent-sim/Dockerfile
+    environment:
+      GATEWAY_URL: http://gateway:8080
+      AGENT_ID: support-bot
+      AGENT_SECRET: ${SUPPORT_BOT_SECRET:?copy .env.example to .env first}
+      APPROVER_USERNAME: ${APPROVER_USERNAME:?copy .env.example to .env first}
+      APPROVER_PASSWORD: ${APPROVER_PASSWORD:?copy .env.example to .env first}
+    depends_on:
+      gateway:
+        condition: service_healthy
 
 volumes:
   postgres-data:

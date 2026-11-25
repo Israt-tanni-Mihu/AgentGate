@@ -119,7 +119,7 @@ class PolicyPlaygroundIntegrationTest {
         assertThat(refundCheck.get("result").asString()).isEqualTo("CONDITION_FAILED");
         assertThat(refundCheck.get("detail").asString()).contains("5000");
         assertThat(check(result, "support-own-customer-only").get("result").asString()).isEqualTo("NOT_FOR_THIS_CALL");
-        assertThat(result.get("checks").size()).as("every rule of version 1 is listed").isEqualTo(4);
+        assertThat(result.get("checks").size()).as("every rule of version 1 is listed").isEqualTo(5);
     }
 
     @Test

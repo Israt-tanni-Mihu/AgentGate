@@ -9,11 +9,11 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 /**
- * "local" profile only: creates two demo agents at startup if they do not exist yet.
+ * "local" and "docker" profiles: creates two demo agents at startup if they do not exist yet.
  * Existing agents are left alone (so a secret change in env vars does not overwrite a stored agent).
  */
 @Component
-@Profile("local")
+@Profile({"local", "docker"})
 @EnableConfigurationProperties(DemoAgentProperties.class)
 class DemoAgentSeeder implements ApplicationRunner {
 

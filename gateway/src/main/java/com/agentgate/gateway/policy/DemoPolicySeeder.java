@@ -10,13 +10,13 @@ import org.springframework.stereotype.Component;
 import tools.jackson.databind.node.JsonNodeFactory;
 
 /**
- * "local" profile only: if there are no policy versions yet, creates version 1 with the demo rules
+ * "local" and "docker" profiles: if there are no policy versions yet, creates version 1 with the demo rules
  * (see docs/policies.md) and activates it. sendSms has no rule on purpose: it falls to default deny.
  *
  * Convention: for ShopBD, X-On-Behalf-Of carries the CUSTOMER ID, e.g. "1" = customer 1.
  */
 @Component
-@Profile("local")
+@Profile({"local", "docker"})
 class DemoPolicySeeder implements ApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(DemoPolicySeeder.class);
@@ -47,6 +47,9 @@ class DemoPolicySeeder implements ApplicationRunner {
                         "Support bot may refund at most 2000 BDT",
                         PolicyRule.Effect.ALLOW, List.of("support-bot"), List.of("issueRefund"),
                         List.of(new Condition("amount", "lessThanOrEqual", JSON.numberNode(2000)))),
+                new PolicyRule("support-track-parcel",
+                        "Support bot may track parcels (tool of the downstream MCP server shop-parcels)",
+                        PolicyRule.Effect.ALLOW, List.of("support-bot"), List.of("track_parcel"), List.of()),
                 new PolicyRule("analytics-read-only",
                         "Analytics bot may read orders and customers",
                         PolicyRule.Effect.ALLOW, List.of("analytics-bot"), List.of("getOrder", "getCustomer"),

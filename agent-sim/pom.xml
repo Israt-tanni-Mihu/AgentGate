@@ -34,6 +34,21 @@
                     <mainClass>com.agentgate.agentsim.AgentSim</mainClass>
                 </configuration>
             </plugin>
+            <!-- Makes target/agent-sim-*.jar a runnable jar with its dependencies (used by agent-sim/Dockerfile). -->
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <mainClass>com.agentgate.agentsim.AgentSim</mainClass>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 </project>

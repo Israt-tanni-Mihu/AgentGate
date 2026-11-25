@@ -1,2 +1,7 @@
+# Shell scripts and the Maven wrapper must keep LF endings, or the Linux Docker build stage fails
+# ("bad interpreter: /bin/sh^M") when the repo was checked out on Windows.
 /mvnw text eol=lf
+*.sh text eol=lf
+Dockerfile text eol=lf
 *.cmd text eol=crlf
+*.ps1 text eol=crlf

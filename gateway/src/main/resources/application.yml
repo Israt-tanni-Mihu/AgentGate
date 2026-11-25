@@ -116,3 +116,20 @@ agentgate:
   demo-agents:
     support-bot-secret: ${SUPPORT_BOT_SECRET:support-bot-local-secret}
     analytics-bot-secret: ${ANALYTICS_BOT_SECRET:analytics-bot-local-secret}
+
+---
+# ---------- "docker" profile: used by docker-compose.yml. No secret has a default here: they all come from .env ----------
+spring:
+  config:
+    activate:
+      on-profile: docker
+
+agentgate:
+  approval:
+    webhook-url: ${APPROVAL_WEBHOOK_URL:http://mock-tools:8081/hooks/approvals}
+  demo-agents:
+    support-bot-secret: ${SUPPORT_BOT_SECRET}
+    analytics-bot-secret: ${ANALYTICS_BOT_SECRET}
+  demo-tools:
+    # On first start the gateway registers the ShopBD tools from this server (see DemoToolSeeder).
+    base-url: ${MOCK_TOOLS_URL:http://mock-tools:8081}
