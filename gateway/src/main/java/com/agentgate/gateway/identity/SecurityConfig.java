@@ -25,7 +25,7 @@ import tools.jackson.databind.ObjectMapper;
  * Who may call what (course rule C3: security on every endpoint). Five filter chains, checked in @Order:
  *
  * 1. /oauth2/token, /oauth2/jwks …  Spring Authorization Server: agents trade client id + secret for a JWT.
- * 2. /api/admin/**, /actuator/metrics/**  admin only, HTTP Basic.
+ * 2. /api/admin/**, /actuator/metrics/**, /actuator/prometheus  admin only, HTTP Basic.
  * 3. /api/approvals/**, /approvals.html  approvers only, HTTP Basic (FR4).
  * 4. /api/agent/**, /mcp               agents only, "Authorization: Bearer <JWT>" (resource server).
  * 5. everything else                health + Swagger UI open, the rest denied (default deny).
@@ -50,7 +50,8 @@ public class SecurityConfig {
     SecurityFilterChain adminChain(HttpSecurity http, ObjectMapper objectMapper) throws Exception {
         var problems = new ProblemDetailsSecurityHandler(objectMapper,
                 ProblemDetailsSecurityHandler.basicChallenge("AgentGate admin"));
-        http.securityMatcher("/api/admin/**", "/actuator/metrics", "/actuator/metrics/**")
+        http.securityMatcher("/api/admin/**", "/actuator/metrics", "/actuator/metrics/**",
+                        "/actuator/prometheus")
                 .authorizeHttpRequests(auth -> auth.anyRequest().hasRole("ADMIN"))
                 .httpBasic(basic -> basic.authenticationEntryPoint(problems))
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(problems).accessDeniedHandler(problems))

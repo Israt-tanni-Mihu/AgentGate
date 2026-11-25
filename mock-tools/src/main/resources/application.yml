@@ -28,3 +28,19 @@ springdoc:
   # Only the ShopBD tool endpoints go into /v3/api-docs. The /admin/chaos endpoint is a test helper,
   # so it must NOT appear in the spec, otherwise FR1's OpenAPI import would turn it into a "tool".
   paths-to-match: /api/**
+
+---
+# Docker: JSON logs, one object per line (same layout as the gateway).
+spring:
+  config:
+    activate:
+      on-profile: docker
+logging:
+  structured:
+    format:
+      console: logstash
+    json:
+      rename:
+        "[@timestamp]": timestamp
+        logger_name: logger
+      exclude: "@version, level_value"

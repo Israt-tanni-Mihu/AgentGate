@@ -26,6 +26,8 @@ public final class CallTrace {
     private JsonNode editedArguments;
     private String failSafeRule;
     private String failSafeDetail;
+    private String toolName;   // null while the tool is unknown (metrics then use "unknown")
+    private String risk;
 
     CallTrace(UUID callId) {
         this.callId = callId;
@@ -56,6 +58,20 @@ public final class CallTrace {
             trace.approver = approver;
             trace.editedArguments = editedArguments;
         }
+    }
+
+    /** Set once the tool is found in the registry; only registered names are safe to use as metric tags. */
+    void recordTool(String toolName, String risk) {
+        this.toolName = toolName;
+        this.risk = risk;
+    }
+
+    String toolName() {
+        return toolName;
+    }
+
+    String risk() {
+        return risk;
     }
 
     /** The first step that stops a call is the one that decided; outer steps passing the result up do not change it. */

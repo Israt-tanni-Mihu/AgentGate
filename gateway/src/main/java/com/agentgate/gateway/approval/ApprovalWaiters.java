@@ -1,5 +1,7 @@
 package com.agentgate.gateway.approval;
 
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -18,6 +20,12 @@ import org.springframework.transaction.event.TransactionalEventListener;
 class ApprovalWaiters {
 
     private final Map<UUID, CompletableFuture<ApprovalDecided>> waiting = new ConcurrentHashMap<>();
+
+    ApprovalWaiters(MeterRegistry meters) {
+        // C4: read from memory, so a metrics scrape never touches the database (it also works during a DB outage).
+        Gauge.builder("agentgate.approvals.pending", waiting, Map::size)
+                .description("Held calls waiting for a human decision on this gateway instance").register(meters);
+    }
 
     CompletableFuture<ApprovalDecided> register(UUID id) {
         return waiting.computeIfAbsent(id, key -> new CompletableFuture<>());

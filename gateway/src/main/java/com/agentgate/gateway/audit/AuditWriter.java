@@ -15,6 +15,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.transaction.support.TransactionOperations;
@@ -161,6 +162,13 @@ public class AuditWriter {
 
     /** Saves one record. Throws {@link DatabaseUnreachable} if the database is down (the caller retries later). */
     private void writeWithRetry(CallCompleted event) {
+        // The writer is its own thread: put the callId on its log lines too, so a failed audit write is found by callId.
+        try (MDC.MDCCloseable ignored = MDC.putCloseable("callId", event.callId().toString())) {
+            writeWithRetryInner(event);
+        }
+    }
+
+    private void writeWithRetryInner(CallCompleted event) {
         for (int attempt = 1; attempt <= ATTEMPTS; attempt++) {
             try {
                 transactions.executeWithoutResult(status -> append(event));

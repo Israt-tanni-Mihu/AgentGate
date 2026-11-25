@@ -35,7 +35,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        include: health,info,metrics,prometheus
   endpoint:
     health:
       show-components: always   # QA4: shows policyStore = UP or STALE (details stay hidden)
@@ -102,6 +102,11 @@ spring:
     username: ${DB_USERNAME:agentgate}
     password: ${DB_PASSWORD:agentgate}
 
+logging:
+  pattern:
+    # Readable local logs; [callId] is empty outside a call.
+    level: "%5p [%X{callId:-}]"
+
 agentgate:
   security:
     admin:
@@ -123,6 +128,17 @@ spring:
   config:
     activate:
       on-profile: docker
+
+# C4: one JSON object per line (Logstash layout built into Spring Boot). MDC keys (callId, agentId) become top-level fields.
+logging:
+  structured:
+    format:
+      console: logstash
+    json:
+      rename:
+        "[@timestamp]": timestamp
+        logger_name: logger
+      exclude: "@version, level_value"
 
 agentgate:
   approval:

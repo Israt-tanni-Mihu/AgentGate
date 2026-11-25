@@ -4,12 +4,14 @@ import com.agentgate.gateway.identity.CallContext;
 import com.agentgate.gateway.registry.ToolResponse;
 import com.agentgate.gateway.registry.ToolDirectory;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.web.ErrorResponseException;
@@ -32,12 +34,15 @@ public class CallPipeline {
     private final ToolDirectory tools;
     private final ApplicationEventPublisher events;
     private final Clock clock;
+    private final CallMetrics metrics;
 
-    public CallPipeline(List<CallStep> steps, ToolDirectory tools, ApplicationEventPublisher events, Clock clock) {
+    public CallPipeline(List<CallStep> steps, ToolDirectory tools, ApplicationEventPublisher events, Clock clock,
+                        CallMetrics metrics) {
         this.steps = List.copyOf(steps);
         this.tools = tools;
         this.events = events;
         this.clock = clock;
+        this.metrics = metrics;
         log.info("Call pipeline: {}", this.steps.stream().map(s -> s.getClass().getSimpleName()).toList());
     }
 
@@ -53,6 +58,9 @@ public class CallPipeline {
         long startNanos = System.nanoTime();
         CallOutcome outcome = null;
         Throwable failure = null;
+        // C4/QA3: every log line of this call (on this thread) carries callId and agentId. Cleared in finally.
+        MDC.put("callId", callId.toString());
+        MDC.put("agentId", context.agentId());
         try {
             outcome = ScopedValue.where(CallTrace.CURRENT, trace).call(() -> run(toolName, arguments, context, trace));
             return outcome;
@@ -60,8 +68,11 @@ public class CallPipeline {
             failure = e;
             throw e;
         } finally {
-            long latencyMs = (System.nanoTime() - startNanos) / 1_000_000;
-            publish(trace, startedAt, latencyMs, toolName, arguments, context, outcome, failure);
+            long latencyNanos = System.nanoTime() - startNanos;
+            long latencyMs = latencyNanos / 1_000_000;
+            publish(trace, startedAt, latencyMs, latencyNanos, toolName, arguments, context, outcome, failure);
+            MDC.remove("callId");
+            MDC.remove("agentId");
         }
     }
 
@@ -72,6 +83,7 @@ public class CallPipeline {
             if (!tool.enabled()) {
                 throw new ToolDisabledException(toolName);
             }
+            trace.recordTool(tool.name(), tool.riskLevel().name());
             return proceedFrom(0, new ToolCall(tool, arguments, context), trace);
         } catch (UnknownToolException | ToolDisabledException e) {
             trace.markDecidedBy(CallPipeline.class.getSimpleName());
@@ -98,10 +110,19 @@ public class CallPipeline {
     }
 
     /** Never lets an audit problem break the agent's call. */
-    private void publish(CallTrace trace, Instant startedAt, long latencyMs, String toolName, ObjectNode arguments,
+    private void publish(CallTrace trace, Instant startedAt, long latencyMs, long latencyNanos, String toolName, ObjectNode arguments,
                          CallContext context, CallOutcome outcome, Throwable failure) {
         try {
-            events.publishEvent(toEvent(trace, startedAt, latencyMs, toolName, arguments, context, outcome, failure));
+            CallCompleted event = toEvent(trace, startedAt, latencyMs, toolName, arguments, context, outcome, failure);
+            log.info("call finished tool={} decision={} step={} rule={} status={} latencyMs={}", toolName,
+                    event.decision(), event.decidedByStep(), event.ruleId(), event.httpStatus(), latencyMs);
+            try {
+                metrics.record(trace.toolName(), trace.risk(), event.decision(), trace.approvalId() != null,
+                        event.decidedByStep(), Duration.ofNanos(latencyNanos));
+            } catch (RuntimeException e) {
+                log.warn("Could not record metrics for call {}", trace.callId(), e);   // metrics never break a call or its audit
+            }
+            events.publishEvent(event);
         } catch (RuntimeException e) {
             log.error("Could not publish the audit event for call {}", trace.callId(), e);
         }

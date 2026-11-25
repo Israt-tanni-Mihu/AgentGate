@@ -25,6 +25,8 @@ services:
       context: .
       dockerfile: mock-tools/Dockerfile
     container_name: agentgate-mock-tools
+    environment:
+      SPRING_PROFILES_ACTIVE: docker   # JSON logs
     ports:
       - "8081:8081"
     healthcheck:
