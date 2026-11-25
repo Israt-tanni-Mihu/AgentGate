@@ -7,7 +7,7 @@ import com.agentgate.gateway.policy.ActivePolicyCache;
 import com.agentgate.gateway.policy.PolicyEngine;
 import com.agentgate.gateway.policy.PolicySnapshot;
 import com.agentgate.gateway.registry.ToolResponse;
-import com.agentgate.gateway.registry.ToolService;
+import com.agentgate.gateway.registry.ToolDirectory;
 import java.util.List;
 import org.springframework.stereotype.Service;
 
@@ -21,15 +21,15 @@ import org.springframework.stereotype.Service;
 @Service
 public class ToolCatalogService {
 
-    private final ToolService toolService;
+    private final ToolDirectory toolDirectory;
     private final ActivePolicyCache policyCache;
     private final PolicyEngine policyEngine;
     private final KillSwitchState killSwitches;
     private final ToolBreakers breakers;
 
-    public ToolCatalogService(ToolService toolService, ActivePolicyCache policyCache, PolicyEngine policyEngine,
+    public ToolCatalogService(ToolDirectory toolDirectory, ActivePolicyCache policyCache, PolicyEngine policyEngine,
                               KillSwitchState killSwitches, ToolBreakers breakers) {
-        this.toolService = toolService;
+        this.toolDirectory = toolDirectory;
         this.policyCache = policyCache;
         this.policyEngine = policyEngine;
         this.killSwitches = killSwitches;
@@ -38,7 +38,7 @@ public class ToolCatalogService {
 
     public List<ToolResponse> visibleTo(CallContext agent) {
         PolicySnapshot policy = policyCache.current();
-        return toolService.listEnabled().stream()
+        return toolDirectory.listEnabled().stream()
                 .filter(tool -> policyEngine.mayCall(policy, agent.agentId(), tool.name()))
                 .filter(tool -> !killSwitches.blocks(agent.agentId(), tool.name(), tool.accessMode()))
                 .filter(tool -> !breakers.isOpen(tool.name()))

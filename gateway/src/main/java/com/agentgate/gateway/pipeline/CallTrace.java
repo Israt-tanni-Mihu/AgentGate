@@ -24,6 +24,8 @@ public final class CallTrace {
     private String approvalState;
     private String approver;
     private JsonNode editedArguments;
+    private String failSafeRule;
+    private String failSafeDetail;
 
     CallTrace(UUID callId) {
         this.callId = callId;
@@ -34,6 +36,14 @@ public final class CallTrace {
         if (CURRENT.isBound()) {
             CURRENT.get().policyRuleId = ruleId;
             CURRENT.get().policyVersion = version;
+        }
+    }
+
+    /** QA4: the call ran on last known data. The audit record then shows this as its rule. */
+    public static void recordFailSafe(String rule, String detail) {
+        if (CURRENT.isBound()) {
+            CURRENT.get().failSafeRule = rule;
+            CURRENT.get().failSafeDetail = detail;
         }
     }
 
@@ -85,5 +95,13 @@ public final class CallTrace {
 
     JsonNode editedArguments() {
         return editedArguments;
+    }
+
+    String failSafeRule() {
+        return failSafeRule;
+    }
+
+    String failSafeDetail() {
+        return failSafeDetail;
     }
 }

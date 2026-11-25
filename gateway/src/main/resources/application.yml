@@ -13,6 +13,10 @@ spring:
     url: ${DB_URL}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
+    hikari:
+      # QA4: notice a dead database in 2 s, not 30 s, so calls and refreshes do not hang during an outage.
+      connection-timeout: 2000
+      validation-timeout: 1000
   jpa:
     open-in-view: false
     hibernate:
@@ -34,6 +38,7 @@ management:
         include: health,info,metrics
   endpoint:
     health:
+      show-components: always   # QA4: shows policyStore = UP or STALE (details stay hidden)
       probes:
         enabled: true   # adds /actuator/health/liveness and /readiness
 
@@ -48,6 +53,13 @@ agentgate:
       username: ${ADMIN_USERNAME:}
       password: ${ADMIN_PASSWORD:}
     access-token-ttl: 5m   # agents get a new token every 5 minutes
+  policy:
+    refresh-interval: 5s   # FR3: how often policies are re-read; also how fast an outage is noticed
+    # QA4: while the database is down, LOW-risk calls may use the last known policies for this long. MEDIUM/HIGH fail closed.
+    max-stale: ${POLICY_MAX_STALE:5m}
+  audit:
+    queue-capacity: 10000   # QA4: audit records kept in memory while the database is down
+    retry-delay: 1s
   guards:
     # FR5 redaction: data types each clearance must NOT see. HIGH agents still see emails and phones.
     redaction-by-clearance:

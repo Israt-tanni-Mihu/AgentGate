@@ -77,13 +77,13 @@ public class SecurityConfig {
 
     @Bean
     @Order(4)
-    SecurityFilterChain agentChain(HttpSecurity http, ObjectMapper objectMapper, AgentRepository agentRepository)
+    SecurityFilterChain agentChain(HttpSecurity http, ObjectMapper objectMapper, AgentDirectory agentDirectory)
             throws Exception {
         var problems = new ProblemDetailsSecurityHandler(objectMapper, new BearerTokenAuthenticationEntryPoint());
         http.securityMatcher("/api/agent/**", "/mcp")
                 .authorizeHttpRequests(auth -> auth.anyRequest().hasRole("AGENT"))
                 .oauth2ResourceServer(rs -> rs
-                        .jwt(jwt -> jwt.jwtAuthenticationConverter(new AgentJwtAuthenticationConverter(agentRepository)))
+                        .jwt(jwt -> jwt.jwtAuthenticationConverter(new AgentJwtAuthenticationConverter(agentDirectory)))
                         .authenticationEntryPoint(problems)
                         .accessDeniedHandler(problems))
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

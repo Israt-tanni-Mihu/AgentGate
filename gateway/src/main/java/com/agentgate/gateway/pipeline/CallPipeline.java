@@ -2,7 +2,7 @@ package com.agentgate.gateway.pipeline;
 
 import com.agentgate.gateway.identity.CallContext;
 import com.agentgate.gateway.registry.ToolResponse;
-import com.agentgate.gateway.registry.ToolService;
+import com.agentgate.gateway.registry.ToolDirectory;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
@@ -29,13 +29,13 @@ public class CallPipeline {
     private static final int MAX_REASON_LENGTH = 500;
 
     private final List<CallStep> steps;
-    private final ToolService toolService;
+    private final ToolDirectory tools;
     private final ApplicationEventPublisher events;
     private final Clock clock;
 
-    public CallPipeline(List<CallStep> steps, ToolService toolService, ApplicationEventPublisher events, Clock clock) {
+    public CallPipeline(List<CallStep> steps, ToolDirectory tools, ApplicationEventPublisher events, Clock clock) {
         this.steps = List.copyOf(steps);
-        this.toolService = toolService;
+        this.tools = tools;
         this.events = events;
         this.clock = clock;
         log.info("Call pipeline: {}", this.steps.stream().map(s -> s.getClass().getSimpleName()).toList());
@@ -67,7 +67,7 @@ public class CallPipeline {
 
     private CallOutcome run(String toolName, ObjectNode arguments, CallContext context, CallTrace trace) {
         try {
-            ToolResponse tool = toolService.findByName(toolName)
+            ToolResponse tool = tools.findByName(toolName)
                     .orElseThrow(() -> new UnknownToolException(toolName));
             if (!tool.enabled()) {
                 throw new ToolDisabledException(toolName);
@@ -120,6 +120,10 @@ public class CallPipeline {
             rule = trace.policyRuleId();
             status = completed.status();
             reason = "completed";
+            if (trace.failSafeRule() != null) {   // QA4: say that the call ran on last known policies
+                rule = trace.failSafeRule();
+                reason = "completed; " + trace.failSafeDetail();
+            }
         } else if (outcome instanceof CallOutcome.Denied denied) {
             decision = "DENIED";
             step = trace.decidingStep();
