@@ -1,7 +1,8 @@
 package com.agentgate.gateway.identity;
 
-import com.agentgate.gateway.approval.ApprovalProperties;
 import com.agentgate.gateway.shared.web.ProblemDetailsSecurityHandler;
+import java.util.ArrayList;
+import java.util.List;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -11,6 +12,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.oauth2.server.authorization.OAuth2AuthorizationServerConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -112,18 +114,21 @@ public class SecurityConfig {
         return PasswordEncoderFactories.createDelegatingPasswordEncoder();
     }
 
-    /** The single admin account, from environment variables (no password in the repo outside local defaults). */
+    /** The admin account (from environment variables) plus any accounts other modules contribute (e.g. the approver). */
     @Bean
-    UserDetailsService adminUsers(GatewaySecurityProperties properties, ApprovalProperties approval,
+    UserDetailsService adminUsers(GatewaySecurityProperties properties, List<LoginAccount> otherAccounts,
                                   PasswordEncoder passwordEncoder) {
-        var admin = User.withUsername(properties.admin().username())
+        var users = new ArrayList<UserDetails>();
+        users.add(User.withUsername(properties.admin().username())
                 .password(passwordEncoder.encode(properties.admin().password()))
                 .roles("ADMIN")
-                .build();
-        var approver = User.withUsername(approval.approver().username())
-                .password(passwordEncoder.encode(approval.approver().password()))
-                .roles("APPROVER")
-                .build();
-        return new InMemoryUserDetailsManager(admin, approver);
+                .build());
+        for (LoginAccount account : otherAccounts) {
+            users.add(User.withUsername(account.username())
+                    .password(passwordEncoder.encode(account.password()))
+                    .roles(account.role())
+                    .build());
+        }
+        return new InMemoryUserDetailsManager(users);
     }
 }

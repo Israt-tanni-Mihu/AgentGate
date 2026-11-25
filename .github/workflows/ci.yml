@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    name: Build + test (incl. ArchUnit)
+    runs-on: ubuntu-latest
+    # Integration tests start their own Postgres through Testcontainers (Docker is preinstalled on this runner).
+    # This service container is an extra, real Postgres 16 next to them, as for a local `docker compose up`.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: agentgate
+          POSTGRES_USER: agentgate
+          POSTGRES_PASSWORD: ci-only-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U agentgate -d agentgate"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'        # same as <java.version> in pom.xml
+          cache: maven
+      # Safety net: Windows checkouts can lose the executable bit (the repo also stores it via git update-index).
+      - name: Make mvnw executable
+        run: chmod +x mvnw
+      - name: Verify (compile, unit + integration tests, ArchUnit)
+        run: ./mvnw -B verify
+
+  docker-build:
+    name: Docker images build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # docker-compose.yml refuses to start without these variables; the example values are fine for a build check.
+      - name: Create .env from the example
+        run: cp .env.example .env
+      - name: Build all images (no push)
+        run: docker compose --profile demo build
