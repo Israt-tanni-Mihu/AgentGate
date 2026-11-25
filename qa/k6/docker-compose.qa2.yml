@@ -1,0 +1,10 @@
+# QA2 override: used ONLY by scripts/qa2-performance.ps1 (docker compose -f docker-compose.yml -f qa/k6/docker-compose.qa2.yml).
+# The default limits (60 calls/min per agent, 1000/day) would block 100 calls/s, which is a different test (FR6).
+# The limit steps still RUN and count every call; only the ceilings are raised so nothing is blocked.
+services:
+  gateway:
+    environment:
+      AGENTGATE_LIMITS_AGENT_PER_MINUTE: "1000000"
+      AGENTGATE_LIMITS_TOOL_PER_MINUTE: "1000000"
+      AGENTGATE_LIMITS_AGENT_DAILY_QUOTA: "100000000"
+      AGENTGATE_LIMITS_TOOL_DAILY_QUOTA: "100000000"
