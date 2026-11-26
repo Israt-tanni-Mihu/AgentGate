@@ -79,6 +79,6 @@ Write-Host "  Admin API (UI)   : $BaseUrl/swagger-ui.html"
 Write-Host "  New tool's spec  : http://localhost:8081/openapi/shipping-rate.json   (open it in the browser)"
 Write-Host "  Spec URL for the gateway (inside Docker): http://mock-tools:8081/openapi/shipping-rate.json"
 Write-Host ""
-Write-Host "When the classmate is done:  .\scripts\qa5-check.ps1"
+Write-Host "When the classmate is done:  powershell -ExecutionPolicy Bypass -File .\scripts\qa5-check.ps1"
 Write-Host "Ready at $(Get-Date -Format 'HH:mm:ss') - START THE TIMER when the classmate opens the runbook." -ForegroundColor Green
 exit 0

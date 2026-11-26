@@ -105,8 +105,10 @@ Tell the observer **"done"**. The observer runs the check script with a real age
 ## For the observer only
 
 ```powershell
-.\scripts\qa5-start.ps1     # before: fresh stack, prints admin login + URLs
-.\scripts\qa5-check.ps1     # after "done": 6 checks, PASS/FAIL each
+powershell -ExecutionPolicy Bypass -File .\scripts\qa5-start.ps1   # before: fresh stack, prints admin login + URLs
+powershell -ExecutionPolicy Bypass -File .\scripts\qa5-check.ps1   # after "done": 6 checks, PASS/FAIL each
 ```
+
+`-ExecutionPolicy Bypass` applies only to that one run. Windows blocks unsigned `.ps1` files by default, and this flag does not change any system setting.
 
 Write the result in a copy of [docs/evidence/qa5-template.md](evidence/qa5-template.md).

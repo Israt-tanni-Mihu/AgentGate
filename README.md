@@ -39,11 +39,13 @@ Run the demo agent (one-shot, not started by `up`):
 docker compose --profile demo run --rm agent-sim
 ```
 
-Check the audit chain (Windows PowerShell; use the `ADMIN_*` values from your `.env`):
+Check the audit chain (Windows PowerShell; the script reads `ADMIN_*` from your `.env` automatically):
 
 ```powershell
-$env:ADMIN_USERNAME="admin"; $env:ADMIN_PASSWORD="<ADMIN_PASSWORD from .env>"; .\scripts\audit-verify.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\audit-verify.ps1
 ```
+
+`-ExecutionPolicy Bypass` applies only to this one run. It is needed because Windows blocks unsigned `.ps1` files by default, and it does not change any system setting.
 
 Stop: `docker compose down` (keeps data) or `docker compose down -v` (also deletes the database, so demo data is re-seeded next time).
 

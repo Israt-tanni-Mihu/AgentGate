@@ -114,3 +114,12 @@ started with "Read CLAUDE.md" and/or "First read ..." and ended with the working
 - **How I found it:** The AI's own check after the edit (listing each row's status) showed PARTIAL rows unchanged and a stray C5 row at the top of the file
 - **How it was fixed:** Restored the file from the last commit (`git checkout -- docs/evidence-report.md`), re-applied the one earlier change, then edited line by line, matching each row by its ID and failing if a row was not found; checked the result again
 - **What I learned:** After a scripted edit, always check the result. A small, checked, line-by-line edit is safer than a clever regex over the whole file
+
+### Case 9
+- **Date:** 2026-11-26
+- **What I asked:** A QA3 script to verify the audit hash chain (`scripts/audit-verify.ps1`)
+- **What the AI produced:** A script that took the admin login only from the shell variables `ADMIN_USERNAME` / `ADMIN_PASSWORD` and otherwise used the `local` profile default password
+- **What was wrong / missing:** The docker compose stack reads the admin password from `.env`, not from the shell. With no shell variables set, the script sent the local default password and got `401 Unauthorized`
+- **How I found it:** Running `audit-verify.ps1` against the docker stack after `qa5-start.ps1`
+- **How it was fixed:** The script now looks for the login in the shell variables first, then in the repo's `.env` file (found through `$PSScriptRoot`, so it works from any folder), then falls back to the local default. The README and QA5 runbook now show the `powershell -ExecutionPolicy Bypass -File ...` form
+- **What I learned:** A helper script must read its config from the same place the system it talks to does. Test scripts against the real docker stack, not only the dev profile
