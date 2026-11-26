@@ -38,6 +38,8 @@ stateDiagram-v2
 
 **Race rule:** if the timeout fires at the same moment an approver decides, `expire()` gets a 409 from the state object and the human's decision wins (`ApprovalStep.await`, catch block). The row lock (`findForUpdate`) makes the two decisions run one after the other.
 
-## Note (code vs. description)
+## After a gateway restart
 
-- **Expiry is done by the waiting call, not by a scheduler.** There is no `@Scheduled` sweeper. If the gateway **restarts while calls are held**, those rows stay `PENDING` forever (nobody waits for them and no timer expires them), and they still show on the approvals page. Approving one later is harmless (no waiter → nothing is forwarded), but the page and the data are misleading. See ADR-0001, "Consequences". Fix idea: on startup, expire every PENDING row whose `expires_at` is in the past.
+Expiry is done by the waiting call, not by a scheduler. If the gateway **restarts while calls are held**, nobody waits for those rows any more. `ApprovalRestartSweep` (on `ApplicationReadyEvent`) moves each of them **PENDING → CANCELLED** with reason "gateway restarted: the agent's held call was lost". It uses the same `cancel()` transition as the kill switch, so `ApprovalDecided`, the webhook and an audit record follow as usual. Rows with a live waiter (calls that arrived after the new start) are skipped. Decided rows are never touched: the State pattern would refuse it (409).
+
+**Why CANCELLED, not EXPIRED, and no new state:** EXPIRED means "nobody answered in time", and its reason is fixed in `ApprovalRequest.expire`. Here the request was ended by the system before its time was up, which is what CANCELLED already means (the system stopped it, not a human). A new `ABANDONED` state would need a Flyway change to the CHECK constraint, a new state class and new handling everywhere, for no new behaviour. The reason text tells it apart from a kill-switch cancel.

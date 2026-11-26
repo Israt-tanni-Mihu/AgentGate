@@ -21,7 +21,8 @@ public class WebhookReceiverController {
 
     @PostMapping("/approvals")
     @ResponseStatus(HttpStatus.ACCEPTED)
-    public void approvalRequested(@RequestBody String body) {
-        log.info("WEBHOOK received: approval requested {}", body);
+    public void approvalEvent(@RequestBody String body) {
+        // A new request has "expiresAt" and no "state"; a closed one has "state" (APPROVED, CANCELLED ...).
+        log.info("WEBHOOK received: approval event {}", body);
     }
 }

@@ -35,7 +35,7 @@ The waiting thread is a **virtual thread** (`spring.threads.virtual.enabled: tru
 
 **Bad**
 - Every proxy / client in front of the gateway must allow an HTTP timeout **> approval timeout** (2 min).
-- **Restart loses held calls.** The agent gets a connection error; the PENDING rows stay PENDING because expiry is done by the waiting thread, not a scheduler (see `docs/architecture/approval-state.md`). Needs a startup sweep.
+- **Restart loses held calls.** The agent gets a connection error and must call again (a new call, checked from the start). **Mitigated:** the PENDING rows used to stay PENDING forever, because expiry is done by the waiting thread, not a scheduler. Now `approval.ApprovalRestartSweep` runs on `ApplicationReadyEvent` and moves every PENDING row without a live waiter to **CANCELLED** (reason "gateway restarted…") through `ApprovalService.cancel`, i.e. the normal State transition. Each one gets an audit record (step `ApprovalRestartSweep`, rule `approval-cancelled`, `http_status 0` = no answer reached the agent) and a webhook; one INFO line gives the count. Test: `ApprovalRestartSweepIntegrationTest`.
 - `ApprovalWaiters` is in memory, so a decision must reach the **same instance** that holds the call — one gateway instance only.
 
 ## Evidence

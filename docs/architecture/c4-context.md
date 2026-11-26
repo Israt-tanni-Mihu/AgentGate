@@ -21,7 +21,7 @@ flowchart TB
     reviewer -- "Audit search, export, verify<br/>(admin API)" --> gate
     gate -- "Forwards allowed calls<br/>(HTTP/JSON)" --> rest
     gate -- "Forwards allowed calls<br/>(MCP tools/call over HTTP)" --> mcp
-    gate -- "New pending approval<br/>(webhook, HTTP POST)" --> hook
+    gate -- "Approval opened / closed<br/>(webhook, HTTP POST)" --> hook
 
     classDef person fill:#08427b,color:#fff,stroke:#052e56
     classDef system fill:#1168bd,color:#fff,stroke:#0b4884

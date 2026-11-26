@@ -92,6 +92,17 @@ public class ApprovalService {
         return covered.size();
     }
 
+    /** Cancels one request with the given reason (same transition as the kill switch). 409 if it is no longer PENDING. */
+    @Transactional
+    public ApprovalResponse cancel(UUID id, String why) {
+        return decide(id, request -> request.cancel(why, clock.instant()));
+    }
+
+    @Transactional(readOnly = true)
+    public List<UUID> pendingIds() {
+        return repository.findByState(ApprovalState.PENDING).stream().map(ApprovalRequest::getId).toList();
+    }
+
     @Transactional(readOnly = true)
     public Page<ApprovalResponse> list(ApprovalState state, Pageable pageable) {
         Page<ApprovalRequest> page = state == null ? repository.findAll(pageable) : repository.findByState(state, pageable);

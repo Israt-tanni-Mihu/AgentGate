@@ -35,6 +35,11 @@ class ApprovalWaiters {
         waiting.remove(id);
     }
 
+    /** True while an agent call on THIS instance is held for this request. */
+    boolean isWaiting(UUID id) {
+        return waiting.containsKey(id);
+    }
+
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     void onDecided(ApprovalDecided event) {
         CompletableFuture<ApprovalDecided> future = waiting.get(event.approvalId());

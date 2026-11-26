@@ -96,6 +96,7 @@ flowchart LR
         aw["ApprovalWaiters<br/>(CompletableFuture per held call)"]
         wh["ApprovalWebhookNotifier"]
         akl["ApprovalKillSwitchListener"]
+        sw["ApprovalRestartSweep<br/>(on startup: orphaned PENDING → CANCELLED)"]
     end
 
     subgraph admin["admin"]
@@ -134,6 +135,9 @@ flowchart LR
     as --> db
     as -- "ApprovalRequested" --> wh
     as -- "ApprovalDecided (after commit)" --> aw
+    as -- "ApprovalDecided" --> wh
+    sw -- "cancel()" --> as
+    sw -- "CallCompleted" --> aud
     ksc --> kss
     ksc -- "KillSwitchActivated" --> akl --> as
     th --> tb

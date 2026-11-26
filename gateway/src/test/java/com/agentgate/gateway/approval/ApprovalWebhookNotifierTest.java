@@ -50,6 +50,29 @@ class ApprovalWebhookNotifierTest {
     }
 
     @Test
+    void aClosedRequestIsAlsoPostedWithItsFinalState() throws Exception {
+        BlockingQueue<String> bodies = new LinkedBlockingQueue<>();
+        HttpServer server = HttpServer.create(new InetSocketAddress("localhost", 0), 0);
+        server.createContext("/hook", exchange -> {
+            bodies.add(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+            exchange.sendResponseHeaders(202, -1);
+            exchange.close();
+        });
+        server.start();
+        try {
+            var decided = new ApprovalDecided(UUID.randomUUID(), ApprovalState.CANCELLED, "support-bot", "1",
+                    "issueRefund", null, ApprovalRestartSweep.REASON, null, Instant.now());
+            notifierFor("http://localhost:" + server.getAddress().getPort() + "/hook").onDecided(decided);
+
+            String body = bodies.poll(5, TimeUnit.SECONDS);
+            assertThat(body).contains(decided.approvalId().toString()).contains("\"state\":\"CANCELLED\"")
+                    .contains("gateway restarted");
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
     void aDeadWebhookNeverThrowsAndNeverBlocksTheCaller() {
         // Nothing listens on port 1: the connection is refused.
         assertThatCode(() -> notifierFor("http://localhost:1/hook").onRequested(event)).doesNotThrowAnyException();

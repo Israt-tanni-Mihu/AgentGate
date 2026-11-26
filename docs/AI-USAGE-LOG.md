@@ -50,3 +50,12 @@
 - **How I found it:** QA1 red-team case MAL-15 (header dropped) came back ALLOWED
 - **How it was fixed:** New operator `hasEndUser` (one new bean), added as a condition to `support-read-orders`; active dev policy moved to a new version (v2); tests `PolicyEngineTest` and `GuardPipelineIntegrationTest`
 - **What I learned:** A check that depends on optional input must fail closed when the input is missing; ask "what if the agent leaves it out?"
+
+### Case 5
+- **Date:** 2026-11-26
+- **What I asked:** FR4 approval flow (held call, timeout, kill switch cancel)
+- **What the AI produced:** Expiry done only by the waiting agent thread; no startup clean-up
+- **What was wrong / missing:** After a gateway restart, held requests stayed PENDING forever (no waiter, no timer) and had no audit record
+- **How I found it:** The AI noticed it itself while writing the C4/ADR docs from the code (ADR-0001)
+- **How it was fixed:** `ApprovalRestartSweep` cancels orphaned PENDING requests on startup through the State pattern, with audit record and webhook; `ApprovalRestartSweepIntegrationTest`
+- **What I learned:** For every "wait in memory" design, ask "what happens to the stored state if the process dies while waiting?"
