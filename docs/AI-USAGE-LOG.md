@@ -59,3 +59,12 @@
 - **How I found it:** The AI noticed it itself while writing the C4/ADR docs from the code (ADR-0001)
 - **How it was fixed:** `ApprovalRestartSweep` cancels orphaned PENDING requests on startup through the State pattern, with audit record and webhook; `ApprovalRestartSweepIntegrationTest`
 - **What I learned:** For every "wait in memory" design, ask "what happens to the stored state if the process dies while waiting?"
+
+### Case 6
+- **Date:** 2026-11-26
+- **What I asked:** Re-capture the QA2 (k6 load) evidence with real numbers
+- **What the AI produced:** Ran the evidence runner script with `*>` redirection to save all output to a file
+- **What was wrong / missing:** In Windows PowerShell 5.1, `*>` wraps a native program's stderr lines as errors. Docker writes its normal progress output to stderr, so those lines became errors and stopped the script before k6 ran
+- **How I found it:** The run failed: the script stopped on "errors" that were really docker's progress output
+- **How it was fixed:** Ran the runner without redirection; the script itself now writes its outputs to files with UTF-8 encoding
+- **What I learned:** On PowerShell 5.1, never redirect a native tool's stderr (`*>`, `2>&1`); "progress on stderr" is normal for docker, not a failure
