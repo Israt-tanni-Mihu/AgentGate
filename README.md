@@ -13,6 +13,8 @@ checked against policy, guarded, held for human approval if high-risk, forwarded
 | `agent-sim/` | Scripted demo agent (MCP client) | – |
 | `docs/` | ADRs, diagrams, patterns table, AI-usage log | – |
 
+**Evidence report (C9):** [docs/evidence-report.md](docs/evidence-report.md) shows each requirement's status, key number, evidence file and how to reproduce it.
+
 ## Requirements
 
 - JDK 25 (Temurin)
