@@ -150,7 +150,7 @@ flowchart LR
     cat --> tb
 ```
 
-- **In-memory state read on every call** (no DB round trip on the hot path): `ToolDirectory`, `AgentDirectory`, `ActivePolicyCache`, `KillSwitchState`, `RateCounters`, `ToolBreakers`. This is what keeps QA2 overhead at 8.81 ms p95.
+- **In-memory state read on every call** (no DB round trip on the hot path): `ToolDirectory`, `AgentDirectory`, `ActivePolicyCache`, `KillSwitchState`, `RateCounters`, `ToolBreakers`. This is what keeps QA2 overhead at 5.33 ms p95 ([qa2-performance.md](../evidence/qa2-performance.md)).
 - `ToolCatalogService` feeds both `GET /api/agent/tools` and MCP `tools/list`, so both lists agree (kill switch, policy, breaker all applied).
 
 ## Notes (code vs. description)

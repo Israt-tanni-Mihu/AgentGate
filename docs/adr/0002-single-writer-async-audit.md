@@ -39,7 +39,7 @@ Each audit row stores `hash = SHA-256(prevHash + canonical row)`. If two threads
 
 ## Evidence
 
-- `docs/evidence/qa2-performance.md`: gateway overhead **8.81 ms p95** at 100 calls/s with audit on for every call.
+- [`docs/evidence/qa2-performance.md`](../evidence/qa2-performance.md) (run of 2026-11-26): gateway overhead **5.33 ms p95** at 100 calls/s (gateway p95 7.16 ms − baseline 1.83 ms), with an audit record for every call. Raw numbers: [`qa2/overhead.json`](../evidence/qa2/overhead.json).
 - `docs/evidence/qa4-failsafe.md`: `agentgate.audit.queue.size = 2` during the outage; after `docker start`, records written in order, `verify` → `OK, 50 records`.
 - `docs/evidence/qa1-redteam.md`, failed run fix #1: a 100 000-char argument made `EmailRedactor` (ReDoS) block the **single** writer for 58 s CPU — the audit queue stopped draining. This is the "single point of slowness" risk observed for real; fixed with a linear-time regex + test.
 - Test: `AuditQueueFullTest` (full queue drops loudly and counts).

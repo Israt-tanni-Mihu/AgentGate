@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
  * PostgreSQL is the source of truth: this copy is loaded at startup and updated by {@link KillSwitchService}
  * when an admin changes a switch, so a switch takes effect on the next call, with no cache refresh wait.
  *
- * Per instance: a second gateway instance learns about a change only when it restarts (see the ADR candidate).
+ * Per instance: a second gateway instance learns about a change only when it restarts (see docs/adr/0006-in-memory-limits-and-kill-switch.md).
  */
 @Component
 public class KillSwitchState {

@@ -1,0 +1,11 @@
+# Override for scripts/fr-evidence-demo.sh only: a short approval timeout so FR4 expiry is quick to show,
+# and an adjustable truncation limit for the FR5 truncation step. Normal runs do not use this file.
+services:
+  gateway:
+    environment:
+      AGENTGATE_APPROVAL_TIMEOUT: ${AGENTGATE_APPROVAL_TIMEOUT:-20s}
+      AGENTGATE_GUARDS_TRUNCATION_MAXBYTES: ${AGENTGATE_GUARDS_TRUNCATION_MAXBYTES:-8192}
+      # FR6: lowered only for the "daily-quotas" / "tool-rate" phases; the defaults are the values from application.yml
+      AGENTGATE_LIMITS_AGENTDAILYQUOTA: ${AGENTGATE_LIMITS_AGENTDAILYQUOTA:-1000}
+      AGENTGATE_LIMITS_TOOLDAILYQUOTA: ${AGENTGATE_LIMITS_TOOLDAILYQUOTA:-5000}
+      AGENTGATE_LIMITS_TOOLPERMINUTE: ${AGENTGATE_LIMITS_TOOLPERMINUTE:-120}

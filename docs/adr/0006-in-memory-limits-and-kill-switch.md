@@ -1,6 +1,6 @@
-# ADR (candidate): in-memory fixed-window limits and kill switch state
+# ADR-0006: in-memory fixed-window limits and kill switch state
 
-**Status:** candidate. Evidence is not measured yet; it comes with the QA2 load test (Phase 6).
+**Status:** Accepted (2026-11-26, after the QA2 and FR6/FR8 evidence runs; was a candidate in Phase 3).
 **Requirements:** FR6 (limits), FR8 (kill switch), QA2 (gateway adds ≤ 30 ms p95 at 100 calls/s), QA4 (fail-safe).
 
 ## Context
@@ -37,7 +37,15 @@ The course runs on one laptop with an 8 GB limit, and the whole system must star
 3. Limits become exact across instances, and a switch reaches every instance within a second.
 4. The cost: one more container, one network hop per call, and a rule for what to do when Redis is down (QA4: medium/high-risk tools fail closed, low-risk tools use the last known state).
 
-## Evidence to collect (before this ADR is accepted)
+## Evidence
 
-- k6 run at 100 calls/s with and without `LimitStep` (latency added, p95). Raw output in `docs/evidence/`.
-- Test that two instances count separately (documents the limit, not a fix).
+- **Cost on the hot path (upper bound):** [qa2-performance.md](../evidence/qa2-performance.md): the whole gateway adds
+  **5.33 ms p95** at 100 calls/s, and `LimitStep` and `KillSwitchStep` run on every one of those calls (QA2 only raises the
+  ceilings, the step still counts). So the in-memory limits cost at most part of 5.33 ms, far under the 30 ms budget.
+- **Behaviour:** [fr-governance-run.md](../evidence/fr-governance-run.md): 61 calls in one minute → 60 × 200, 1 × 429
+  `agent-rate-per-minute`, one alert; the kill switch blocks the very next call (agent, tool, all writes).
+- **The fixed-window edge effect was seen in a real run:** in one run the 61 calls crossed a minute boundary and all
+  61 passed (same file, "Failed / odd runs"). This is the "up to 2× at the window edge" consequence above.
+
+**Not measured:** the cost of `LimitStep` on its own (a k6 run with and without the step would need a switch to turn the
+step off), and two instances counting separately (it follows from the design; no second instance was started).

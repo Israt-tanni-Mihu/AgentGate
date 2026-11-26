@@ -10,8 +10,8 @@ import org.springframework.stereotype.Component;
  * FR6 counters: a FIXED WINDOW counter per (limit, subject). Each window (e.g. one minute) starts at count 0.
  *
  * Simple and fast, and it needs no library. The counts live in THIS JVM's memory only: with two gateway
- * instances each instance counts on its own, so a limit can be exceeded up to N times. See the ADR candidate
- * in docs/adr/.
+ * instances each instance counts on its own, so a limit can be exceeded up to N times. See ADR-0006
+ * (docs/adr/0006-in-memory-limits-and-kill-switch.md).
  */
 @Component
 public class RateCounters {

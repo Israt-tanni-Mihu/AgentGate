@@ -49,3 +49,30 @@ jobs:
         run: cp .env.example .env
       - name: Build all images (no push)
         run: docker compose --profile demo build
+
+  qa1-redteam:
+    name: QA1 red-team suite (30 malicious + 200 legitimate calls)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create .env from the example
+        run: cp .env.example .env
+      - name: Start the whole stack (fresh database)
+        run: docker compose up --build -d --wait
+      # The runner exits with 1 if any malicious call gets through or more than 5% of legitimate calls are blocked.
+      # shell: bash turns on pipefail, so tee does not hide that exit code.
+      - name: Run QA1
+        shell: bash
+        run: docker compose --profile demo run --rm -T agent-sim qa1 | tee qa1-output.md
+      - name: Keep the QA1 report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa1-output
+          path: qa1-output.md
+      - name: Gateway log (only when something failed)
+        if: failure()
+        run: docker compose logs --tail 200 gateway
+      - name: Stop the stack
+        if: always()
+        run: docker compose down -v

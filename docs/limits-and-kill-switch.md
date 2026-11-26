@@ -67,15 +67,17 @@ Setting `"engaged": false` releases a switch. The target must exist (404 otherwi
 - In an emergency, it must not depend on a database read per call. The state is a set in memory (`KillSwitchState`), loaded from PostgreSQL at startup. An admin change updates the set in the same request, so the next call is already blocked. There is no cache refresh to wait for, unlike the policy cache (every 5 s).
 - Tests prove both: a killed call does not consume the write cap (`killedCallsDoNotUseUpTheLimitsBecauseTheKillSwitchRunsFirst`), and a tool kill takes effect on the very next call.
 
-### Event for the approvals feature (TODO)
+### Pending approvals are cancelled (FR4 + FR8)
 
 Turning a switch ON publishes `admin.KillSwitchActivated(scope, target)`. It is published only on the change OFF → ON.
-
-> **TODO (FR4, approvals, not built yet):** the approval module must listen to `KillSwitchActivated` and cancel every pending approval the switch covers: `AGENT` → that agent's, `TOOL` → that tool's, `ALL_WRITES` → every pending WRITE approval. Until then, a pending approval can still be approved after a kill switch is on. Approving it must be blocked when the approval is completed (the kill switch is checked again by the forward step, or the approval module checks it first).
+`approval.ApprovalKillSwitchListener` listens to it and cancels every PENDING approval the switch covers: `AGENT` → that
+agent's, `TOOL` → that tool's, `ALL_WRITES` → every pending WRITE approval. The waiting agent gets `403 approval-cancelled`
+at once. Evidence: [evidence/fr-governance-run.md](evidence/fr-governance-run.md) (answer 231 ms after the switch);
+tests `ApprovalIntegrationTest.killSwitchCancelsThePendingRequestAndTheAgentIsAnsweredAtOnce`, `.allWritesKillSwitchAlsoCancelsPendingWriteApprovals`.
 
 ## 4. Known limits of this version
 
-- **Per instance.** Counts and the kill-switch set live in one JVM. With two gateway instances, each counts on its own, and a switch reaches the other instance only after a restart. See `docs/adr/ADR-candidate-in-memory-limits.md`.
+- **Per instance.** Counts and the kill-switch set live in one JVM. With two gateway instances, each counts on its own, and a switch reaches the other instance only after a restart. See `docs/adr/0006-in-memory-limits-and-kill-switch.md`.
 - Counts are **lost on restart**. A restart gives every agent a fresh window.
 - Per-agent or per-tool **overrides** of the limits are not built (bonus, skipped for time).
 - The kill-switch memory update happens inside the database transaction. If the commit fails after the memory update, memory and database disagree until the next restart. The window is very small, and the fix is to update memory after commit (`TransactionSynchronization`).

@@ -33,6 +33,6 @@ Use **Spring MVC** (blocking, servlet) with `spring.threads.virtual.enabled: tru
 
 ## Evidence
 
-- `docs/evidence/qa2-performance.md`: 100 calls/s, gateway p95 11.21 ms vs. baseline 2.40 ms → **8.81 ms overhead** (limit 30 ms), 0 failed, 0 dropped iterations, whole stack on one laptop.
+- [`docs/evidence/qa2-performance.md`](../evidence/qa2-performance.md) (run of 2026-11-26): 100 calls/s, gateway p95 7.16 ms vs. baseline 1.83 ms → **5.33 ms overhead** (limit 30 ms), 0 failed, 0 dropped iterations, whole stack on one laptop. Raw numbers: [`qa2/overhead.json`](../evidence/qa2/overhead.json).
 - `docs/evidence/c1-one-command.md`: whole system starts in ~1 min with `docker compose up` on the laptop.
 - **Not measured:** the same load on WebFlux (no prototype was built, so the comparison is by argument, not by measurement), and QA2 load while many calls are held.
