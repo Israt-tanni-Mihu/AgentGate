@@ -28,7 +28,17 @@ $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
 $project = "agentgate-qa2"
 $compose = @("compose", "-p", $project, "-f", "docker-compose.yml", "-f", "qa/k6/docker-compose.qa2.yml")
+$EvidenceDir = "docs/evidence/qa2"
+$K6Image = "grafana/k6:2.4.0"   # pinned, so a re-run uses the same k6 as the evidence
 New-Item -ItemType Directory -Force $OutDir | Out-Null
+
+# Windows PowerShell 5.1 writes "> file" and Tee-Object as UTF-16, which grep/git show as binary.
+# Every text file this script writes goes through here: UTF-8 without BOM.
+function Write-Utf8 {
+    param([string]$Path, [string[]]$Lines)
+    $full = Join-Path (Get-Location) $Path
+    [System.IO.File]::WriteAllLines($full, $Lines, (New-Object System.Text.UTF8Encoding($false)))
+}
 
 function Invoke-K6 {
     param([string]$Mode, [hashtable]$ExtraEnv)
@@ -37,17 +47,20 @@ function Invoke-K6 {
     if (Get-Command k6 -ErrorAction SilentlyContinue) {
         foreach ($k in $envList.Keys) { Set-Item "env:$k" $envList[$k] }
         $env:GATEWAY_URL = "http://localhost:8080"; $env:MOCK_TOOLS_URL = "http://localhost:8081"
-        & k6 run --quiet --summary-export "$OutDir/$summary" qa/k6/qa2.js | Tee-Object "$OutDir/$Mode-output.txt" | Out-Host
+        $lines = & k6 run --quiet --no-color --summary-export "$OutDir/$summary" qa/k6/qa2.js
     } else {
         # On the compose network, so the traffic does not go through the Windows host port mapping.
         $dockerArgs = @("run", "--rm", "--network", "${project}_default",
             "-v", "${root}/qa/k6:/scripts:ro", "-v", "${root}/${OutDir}:/out",
             "-e", "GATEWAY_URL=http://gateway:8080", "-e", "MOCK_TOOLS_URL=http://mock-tools:8081")
         foreach ($k in $envList.Keys) { $dockerArgs += @("-e", "$k=$($envList[$k])") }
-        $dockerArgs += @("grafana/k6:latest", "run", "--quiet", "--summary-export", "/out/$summary", "/scripts/qa2.js")
-        & docker @dockerArgs | Tee-Object "$OutDir/$Mode-output.txt" | Out-Host
+        $dockerArgs += @($K6Image, "run", "--quiet", "--no-color", "--summary-export", "/out/$summary", "/scripts/qa2.js")
+        $lines = & docker @dockerArgs
     }
-    return [int]$LASTEXITCODE
+    $exit = [int]$LASTEXITCODE
+    $lines | Out-Host
+    Write-Utf8 "$OutDir/$Mode-output.txt" ([string[]]$lines)
+    return $exit
 }
 
 function Get-P95 { param([string]$File) (Get-Content $File -Raw | ConvertFrom-Json).metrics.'http_req_duration{scenario:measure}'.'p(95)' }
@@ -76,7 +89,14 @@ try {
     "{0,-26} {1,8:N2} ms   (limit {2} ms)" -f "OVERHEAD (gateway-baseline)", $overhead, $MaxOverheadMs | Write-Host
     "k6 exit codes: baseline=$baselineExit gateway=$gatewayExit (0 = all thresholds held)" | Write-Host
     @{ baselineP95 = $baselineP95; gatewayP95 = $gatewayP95; overhead = $overhead; pass = $pass } |
-        ConvertTo-Json | Set-Content "$OutDir/overhead.json"
+        ConvertTo-Json | Set-Content -Encoding utf8 "$OutDir/overhead.json"
+
+    # Copy the machine-readable results into docs/ so the evidence numbers can be checked later.
+    New-Item -ItemType Directory -Force $EvidenceDir | Out-Null
+    foreach ($f in @("baseline-summary.json", "gateway-summary.json", "overhead.json", "baseline-output.txt", "gateway-output.txt")) {
+        Copy-Item "$OutDir/$f" "$EvidenceDir/$f" -Force
+    }
+    Write-Host "Results copied to $EvidenceDir"
     if ($pass) { Write-Host "QA2 PASSED" -ForegroundColor Green; $code = 0 } else { Write-Host "QA2 FAILED" -ForegroundColor Red; $code = 1 }
 } finally {
     if (-not $NoStack -and -not $KeepStack) {
