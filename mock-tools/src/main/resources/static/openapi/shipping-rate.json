@@ -1,0 +1,51 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "ShopBD Shipping API",
+    "version": "1.0.0",
+    "description": "A small REST tool used for the QA5 adoption test. Not imported into the gateway automatically."
+  },
+  "paths": {
+    "/shipping/rate": {
+      "get": {
+        "operationId": "getShippingRate",
+        "summary": "Get the delivery price for a parcel",
+        "description": "Read-only. Returns the delivery price in BDT for a parcel of the given weight, inside or outside Dhaka.",
+        "parameters": [
+          {
+            "name": "weightKg",
+            "in": "query",
+            "required": true,
+            "description": "Parcel weight in kg",
+            "schema": { "type": "number", "exclusiveMinimum": 0, "maximum": 100 }
+          },
+          {
+            "name": "zone",
+            "in": "query",
+            "required": true,
+            "description": "Delivery zone",
+            "schema": { "type": "string", "enum": ["inside_dhaka", "outside_dhaka"] }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The delivery price",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "weightKg": { "type": "number" },
+                    "zone": { "type": "string" },
+                    "rate": { "type": "number" },
+                    "currency": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
